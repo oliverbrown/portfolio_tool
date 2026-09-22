@@ -1,0 +1,82 @@
+# Python bytecode caches
+__pycache__/
+*.pyc
+
+# macOS Finder metadata
+.DS_Store
+
+# Personal household data -- Fidelity account exports and this
+# household's own retirement planning files. These belong in
+# ~/.portfolio_tool/ (see pt/planning.py, pt/scenario.py), specifically
+# so they stay out of this repo -- this catches a copy placed inside the
+# repo tree by mistake (e.g. while testing scenario_engine/), at any depth.
+Portfolio_Positions_*.csv
+CombinedPortfolio_Positions_*.csv
+retirement_scenario*.yaml
+retirement_profile.yaml
+
+# ...except the checked-in synthetic sample data, which is meant to be
+# tracked (see test_data/README.md).
+!test_data/Portfolio_Positions_*.csv
+!test_data/retirement_scenario*.yaml
+!test_data/retirement_profile.yaml
+
+# Generated report/projection output -- the default filenames pt.cli
+# report/project write to the current directory, plus Excel's own lock
+# file for an open workbook, plus other rebalancing_report*/report*
+# variants that have shown up from ad hoc --out names while testing.
+rebalancing_report.txt
+rebalancing_report.xlsx
+rebalancing_report*.txt
+rebalancing_report*.xlsx
+projection*.txt
+projection*.xlsx
+~$*.xlsx
+
+# scripts/run_scenario.sh's <scenario-stem>_{project,mc,report}.{png,xlsx,
+# txt} output naming, plus report --private/--public and other ad hoc
+# --out names (mc.xlsx, monte_carlo.png, retirement_scenario_1.xlsx, ...)
+# that have shown up while testing project/monte-carlo/report by hand.
+*_project.png
+*_project.xlsx
+*_mc.png
+*_mc.xlsx
+*_report.xlsx
+*_report.txt
+*_report-shared.xlsx
+*_private.xlsx
+*_public.xlsx
+mc*.png
+mc*.xlsx
+monte_carlo*.png
+monte_carlo*.xlsx
+retirement_scenario*.xlsx
+retirement_scenario*.txt
+retirement_scenario*.png
+
+# scenario_engine's default output directories (repo root only -- see
+# scenario_engine/README.md)
+/scenarios/
+/results/
+/optimized/
+
+# Ad hoc sweep configs built by hand while testing scenario_engine --
+# not the checked-in example sweeps, just personal scratch ones
+scenario_engine/my_sweep_*.yaml
+
+# Ad hoc exports/scratch files that have shown up in this project's root
+sector.csv
+style.csv
+unclass*.txt
+
+# Whole-project zip backups
+portfolio_tool_v*.zip
+fidelity_tool_v*.zip
+
+# SlickEdit project files (this editor's own project state, not part of
+# the source tree)
+*.vpj
+*.vpw
+*.vpwhistuxml
+*.vtg
+*.vpwwildcardcache

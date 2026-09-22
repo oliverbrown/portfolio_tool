@@ -1,0 +1,108 @@
+# SYNTHETIC test data -- fictional household ("Jordan" and "Casey"), no
+# real people or real dollar amounts. See test_data/README.md.
+#
+# Retirement scenario ("base" case) -- the "what if" assumptions a growth
+# projection runs against. See pt/scenario.py. Joined against
+# people/birthdates in retirement_profile.yaml.
+#
+# Percentages (inflation.general, returns.asset_classes.*.expected_return/
+# .volatility) are plain percentage points, e.g. 2.5 means 2.5%.
+description: "Synthetic demo scenario for test_data/ -- safe to experiment with."
+
+retirement:
+  retirement_age: 65
+  spouse_retirement_age: 63
+  life_expectancy: 95
+  spouse_life_expectancy: 95
+
+income:
+  target_spending: 90000
+
+inflation:
+  general: 2.5
+
+# One expected-return/volatility pair per asset class this household
+# actually holds (see pt/classifier.py's ASSET_CLASS_HIERARCHY for the
+# full macro/subclass list, and pt/scenario.py's "Shape" docstring for the
+# fallback/error rules) -- `project`/`monte-carlo`/`roth_optimizer` blend
+# these by the household's ACTUAL current dollar allocation in each class
+# (see pt.cli report's Asset Allocation section) rather than one flat
+# "growth" rate for the whole portfolio. A class not itemized here falls
+# back to its macro's entry (e.g. an unlisted "REITs" would use "Growth"
+# below, if given) -- this example itemizes equities/bonds individually
+# but lumps everything cash-like under one "Liquidity" line, mirroring a
+# household that cares about the first distinction more than the second.
+# `monte-carlo` additionally draws each class its own correlated random
+# return every simulated year (see pt/projection.py's
+# build_correlated_return_sampler()) instead of one blended draw for the
+# whole portfolio -- the older 2-bucket returns.growth/.fixed_income shape
+# is still accepted (see pt/scenario.py) for any scenario file that
+# doesn't need this finer control.
+returns:
+  asset_classes:
+    US Equity:              {expected_return: 7.5, volatility: 18}
+    International Equity:   {expected_return: 7.0, volatility: 20}
+    US Bonds:                {expected_return: 4.0, volatility: 7}
+    Liquidity:               {expected_return: 2.5, volatility: 1}
+    Alternatives:            {expected_return: 5.0, volatility: 15}
+
+# Optional -- used by a roth_conversions constraints.preserve_cash_reserve:
+# true below. How many years of target_spending (counted forward from the
+# current projection year) to keep untouched in the Taxable bucket.
+cash_reserve:
+  years: 0
+
+social_security:
+  jordan:
+    claim_age: 67
+    monthly_benefit: 2800
+  casey:
+    claim_age: 67
+    monthly_benefit: 2200
+
+# SECURE Act 10-year rule -- see pt/rmd.py. Matches test_data's two
+# "inherited" accounts (650678215 traditional, 660789326 Roth).
+inherited_accounts:
+  - account_number: "650678215"    # IRA - BDA (INHERITED)
+    type: traditional
+    decedent_birthdate: 1938-02-10
+    decedent_death_date: 2024-06-01
+    beneficiary: jordan
+  - account_number: "660789326"    # ROTH IRA - BDA (INHERITED)
+    type: roth
+    decedent_birthdate: 1938-02-10
+    decedent_death_date: 2024-06-01
+    beneficiary: jordan
+
+#roth_conversions:
+#  - owner: jordan
+#    start_date: 2029-01-01
+#    end_date: 2039-12-31
+#    constraints:
+#      max_marginal_bracket: 24           # or "24%" -- must match a real bracket rate
+#      avoid_irmaa_tier: 3                # 0 (standard) - 5 (top surcharge); avoid_irmaa: true also
+#                                          # accepted as shorthand for avoid_irmaa_tier: 0
+#      max_conversion_per_year: 60000
+#      preserve_cash_reserve: true        # uses the cash_reserve.years policy above
+
+#rollovers:
+#  - owner: jordan
+#    date: 2029-06-01               # a single date, not a window
+#    pct: 100                       # percent of the 401(k) balance (after that year's
+#                                    # growth) to roll over -- or use `amount` instead
+
+# Optional -- estimated monthly private health insurance cost per person.
+# Applies every year from that PERSON'S OWN retirement through the year
+# before they turn 65 (Medicare eligibility).
+#health_insurance:
+#  jordan:
+#    monthly_amount: 900
+#  casey:
+#    monthly_amount: 850
+
+# Global advisory/AUM fee modeled into project -- a single rate applied to
+# the whole portfolio's total value each year, paid Taxable -> Traditional
+# -> Roth like any other cash need. pct_of_portfolio is a percentage, e.g.
+# 1.0 means 1.00%/year.
+advisory_expense:
+  pct_of_portfolio: 0.75

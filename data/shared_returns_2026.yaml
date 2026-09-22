@@ -1,0 +1,126 @@
+# Shared capital market assumptions -- expected return / volatility per
+# asset class -- meant to be pulled into a retirement scenario file via
+# `_include` (see pt/scenario.py's module docstring, and README.md's
+# "Sharing assumptions across scenario files" section) instead of every
+# scenario file copy-pasting its own returns.asset_classes block:
+#
+#   _include: ../data/shared_returns_2026.yaml   # path relative to your scenario file
+#   retirement: {retirement_age: 64}
+#   ...
+#
+# A scenario can still override any individual class (or add one this
+# file doesn't have) -- _include is a recursive merge, so e.g. overriding
+# just US Equity here doesn't drop every other class this file provides.
+#
+# VINTAGE: as of September 2026 -- see per-class notes below for sourcing.
+# Capital market assumptions go stale; don't edit this file in place once
+# a scenario references it if you want past runs to stay reproducible --
+# copy it forward instead (shared_returns_2027.yaml, ...) and repoint
+# _include at the new file when you're ready to adopt updated numbers.
+#
+# All figures are nominal percentage points (7.5 means 7.5%, not 0.075) --
+# same convention as everywhere else in this project. This is a modeling
+# input, not investment advice -- see the top-level README's "Disclaimer".
+returns:
+  asset_classes:
+    US Equity:
+      expected_return: 8.0
+      volatility: 18
+    International Equity:
+      # Narrowed from a larger historical US premium -- most current
+      # forward-looking capital market assumptions (Vanguard, JPMorgan,
+      # GMO, Research Affiliates) favor non-US over US given the
+      # valuation gap between the two markets; a full 100bp+ US premium
+      # is no longer the obvious default the way it once was. This keeps
+      # a small (50bp) US-favoring tilt rather than full parity -- revisit
+      # if your own view differs.
+      expected_return: 7.5
+      volatility: 20
+    REITs:
+      expected_return: 7.5
+      volatility: 20
+    US Bonds:
+      # AGG's own current yield-to-maturity is running close to the
+      # 10-year Treasury (~5.0% as of Sept 2026) plus a modest
+      # investment-grade spread -- current yield is the single best
+      # predictor of a bond fund's forward return over a horizon close to
+      # its duration, so this is anchored to that rather than a long-run
+      # historical average.
+      expected_return: 4.9
+      volatility: 7
+    International Bonds:
+      # Parallel bump to US Bonds -- an estimate (no directly sourced
+      # non-US yield figure went into this), not as tightly anchored as
+      # the US fixed-income entries below.
+      expected_return: 4.6
+      volatility: 7
+    Long Treasuries (+7 Year):
+      # The 30-year Treasury yield itself, as of Sept 2026 (~5.36%,
+      # rounded down slightly since a real fund's duration is a bit
+      # short of the full 30-year point).
+      expected_return: 5.3
+      volatility: 13
+    Intermediate Treasuries (3-7 year):
+      # The belly of the curve -- between the ~4% front end and the
+      # 10-year at ~5.0% as of Sept 2026.
+      expected_return: 4.6
+      volatility: 5.5
+    Money Market:
+      # Brokerage sweep funds track close to the effective fed funds rate
+      # (~3.6% as of Sept 2026), net of a small expense ratio.
+      expected_return: 3.75
+      volatility: 0.5
+    CDs:
+      # In line with published CD / high-yield savings rates currently
+      # running up to ~4.0% (Sept 2026); CDs typically carry a modest
+      # premium over Treasuries of similar term for bank funding needs.
+      expected_return: 4.1
+      volatility: 1
+    Short Treasuries (< 3 year):
+      # The 3-month T-bill is at ~4.0% as of Sept 2026, and futures were
+      # pricing fed funds RISING toward 4.5% by late 2027 at the time --
+      # i.e. don't assume the front end reverts lower from here without
+      # your own reason to expect that.
+      expected_return: 4.1
+      volatility: 1.5
+    Cash:
+      # Literal idle/checking cash -- typically doesn't fully track
+      # T-bill-like yields even when everything else here does, hence the
+      # smaller bump than Money Market/Short Treasuries above.
+      expected_return: 3.25
+      volatility: 0.5
+    Cryptocurrency:
+      # 10%/60% (an earlier draft of this file) implied a Sharpe ratio far
+      # worse than every other class here (~0.12 vs. US Equity's ~0.28) --
+      # not a real bear OR bull case, just an internally inconsistent
+      # pairing nobody actually holds. 12% still leaves this clearly the
+      # worst risk-adjusted asset in the sheet (appropriate for something
+      # this speculative) without being an accidental non-view.
+      expected_return: 12.0
+      volatility: 60
+    Gold:
+      expected_return: 4.5
+      volatility: 17
+    Commodities:
+      expected_return: 4.5
+      volatility: 18
+    Other:
+      expected_return: 4.0
+      volatility: 7
+    Fixed Indexed Annuities:
+      # 0% floor / 10.5% cap, tracking US Equity (proxy for the S&P 500 --
+      # this tool has no separate S&P 500 index class). expected_return/
+      # volatility below are the actual expected value/stdev of
+      # clip(US Equity's own Normal(8.0%, 18%), 0%, 10.5%) -- i.e. exactly
+      # what a floor-0%/cap-10.5% contract on THIS FILE's own US Equity
+      # assumption would realize on average -- not an independent guess.
+      # If you ever change US Equity's own expected_return/volatility
+      # above, recompute these two to match; they'll silently drift out
+      # of sync otherwise. These two only feed `project`'s deterministic
+      # blend and the report's display -- the Monte Carlo draw itself
+      # uses tracks/floor/cap below, not these.
+      expected_return: 5.9
+      volatility: 4.8
+      tracks: US Equity
+      floor: 0
+      cap: 10.5

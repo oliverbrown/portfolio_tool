@@ -1,0 +1,19 @@
+# SYNTHETIC test data -- fictional household ("Jordan" and "Casey"), no
+# real people. See test_data/README.md.
+#
+# Retirement planning profile: fixed identity facts (who's in the
+# household, and when they were born). See pt/planning.py. Retirement
+# ages, spending, inflation, returns, and Social Security claim ages live
+# in retirement_scenario.yaml instead (pt/scenario.py).
+#
+# primary/spouse name the roles used in retirement_scenario.yaml's
+# retirement_age vs spouse_retirement_age; social_security and `import`'s
+# owner names key off the same lowercase name.
+
+people:
+  primary:
+    name: jordan
+    birthdate: 1966-04-12
+  spouse:
+    name: casey
+    birthdate: 1968-09-30

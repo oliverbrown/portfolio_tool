@@ -1,0 +1,14 @@
+"Positions for Individual XXXX1234 as of 08:00 AM ET, 08/15/2026"
+
+Symbol,Description,Quantity,Price,Price Change $,Price Change %,Market Value,Day Change $,Day Change %,Cost Basis,Gain/Loss $,Gain/Loss %,Reinvest Dividends?,Capital Gains?,% Of Account,Dividend Yield,Last Dividend,Ex-Dividend Date,P/E Ratio,52 Week Low,52 Week High,Volume,Intrinsic Value,In The Money,Security Type,
+VTI,VANGUARD TOTAL STOCK MARKET ETF,200,$300.00,$0.85,0.28%,$60000.00,$170.00,0.28%,$48000.00,$12000.00,25.00%,No,No,68.57%,1.30%,$0.95,08/22/2026,--,--,--,--,--,--,ETF,
+VXUS,VANGUARD TOTAL INTL STOCK ETF,500,$60.00,$0.10,0.17%,$30000.00,$50.00,0.17%,$26000.00,$4000.00,15.38%,No,No,34.29%,3.10%,$0.45,08/22/2026,--,--,--,--,--,--,ETF,
+Cash & Cash Investments,,,,,,$5000.00,,,,,,,,5.71%,,,,,,,,,,,
+Account Total,,,,,,$95000.00,,,,,,,,100.00%,,,,,,,,,,,
+
+"Positions for Roth IRA XXXX5678 as of 08:00 AM ET, 08/15/2026"
+
+Symbol,Description,Quantity,Price,Price Change $,Price Change %,Market Value,Day Change $,Day Change %,Cost Basis,Gain/Loss $,Gain/Loss %,Reinvest Dividends?,Capital Gains?,% Of Account,Dividend Yield,Last Dividend,Ex-Dividend Date,P/E Ratio,52 Week Low,52 Week High,Volume,Intrinsic Value,In The Money,Security Type,
+BND,VANGUARD TOTAL BOND MARKET ETF,1000,$70.00,-$0.05,-0.07%,$70000.00,-$50.00,-0.07%,$74000.00,-$4000.00,-5.41%,Yes,No,74.47%,3.40%,$0.20,09/01/2026,--,--,--,--,--,--,ETF,
+SCHD,SCHWAB US DIVIDEND EQUITY ETF,300,$80.00,$0.20,0.25%,$24000.00,$60.00,0.25%,$19500.00,$4500.00,23.08%,Yes,No,25.53%,3.50%,$0.70,09/05/2026,--,--,--,--,--,--,ETF,
+Account Total,,,,,,$94000.00,,,,,,,,100.00%,,,,,,,,,,,

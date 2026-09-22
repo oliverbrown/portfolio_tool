@@ -1,0 +1,49 @@
+symbol,asset_class,description
+FXAIX,US Equity,Fidelity 500 Index Fund
+FSKAX,US Equity,Fidelity Total Market Index Fund
+FZROX,US Equity,Fidelity ZERO Total Market Index Fund
+FSMAX,US Equity,Fidelity Extended Market Index Fund
+FSSNX,US Equity,Fidelity Small Cap Index Fund
+VTI,US Equity,Vanguard Total Stock Market ETF
+VOO,US Equity,Vanguard S&P 500 ETF
+VTSAX,US Equity,Vanguard Total Stock Market Index Fund
+SCHB,US Equity,Schwab US Broad Market ETF
+ITOT,US Equity,iShares Core S&P Total US Stock Market ETF
+SPY,US Equity,SPDR S&P 500 ETF
+SCHD,US Equity,Schwab US Dividend Equity ETF
+VIG,US Equity,Vanguard Dividend Appreciation ETF
+FTIHX,International Equity,Fidelity Total International Index Fund
+FZILX,International Equity,Fidelity ZERO International Index Fund
+FSPSX,International Equity,Fidelity International Index Fund
+VXUS,International Equity,Vanguard Total International Stock ETF
+VEU,International Equity,Vanguard FTSE All-World ex-US ETF
+VEA,International Equity,Vanguard FTSE Developed Markets ETF
+VWO,International Equity,Vanguard FTSE Emerging Markets ETF
+IXUS,International Equity,iShares Core MSCI Total International Stock ETF
+SCHF,International Equity,Schwab International Equity ETF
+FXNAX,US Bonds,Fidelity US Bond Index Fund
+FTBFX,US Bonds,Fidelity Total Bond Fund
+FGOVX,US Bonds,Fidelity Government Income Fund
+AGG,US Bonds,iShares Core US Aggregate Bond ETF
+BND,US Bonds,Vanguard Total Bond Market ETF
+SCHZ,US Bonds,Schwab US Aggregate Bond ETF
+VBTLX,US Bonds,Vanguard Total Bond Market Index Fund
+TIP,US Bonds,iShares TIPS Bond ETF
+BNDX,International Bonds,Vanguard Total International Bond ETF
+IAGG,International Bonds,iShares Core International Aggregate Bond ETF
+BWX,International Bonds,SPDR Bloomberg International Treasury Bond ETF
+SPAXX,Money Market,Fidelity Government Money Market (core position)
+FDRXX,Money Market,Fidelity Government Cash Reserves (core position)
+FZFXX,Money Market,Fidelity Treasury Money Market Fund
+FCASH,Money Market,Fidelity core cash balance
+VMFXX,Money Market,Vanguard Federal Money Market Fund
+SGOV,Short Treasuries (< 3 year),iShares 0-3 Month Treasury Bond ETF
+BIL,Short Treasuries (< 3 year),SPDR Bloomberg 1-3 Month T-Bill ETF
+VGIT,Intermediate Treasuries (3-7 year),Vanguard Intermediate-Term Treasury ETF
+IEF,Long Treasuries (+7 Year),iShares 7-10 Year Treasury Bond ETF
+GLD,Gold,SPDR Gold Shares
+IAU,Gold,iShares Gold Trust
+GBTC,Cryptocurrency,Grayscale Bitcoin Trust
+CASH,Cash,"Uninvested brokerage cash (Schwab ""Cash & Cash Investments"" / E*TRADE ""CASH"" position)"
+VT,Other,"Vanguard Total World Stock ETF (mixed US/Intl -- classify as a Fund for a precise split, e.g. classify VT Fund ""US Equity"" 0.6 ""International Equity"" 0.4)"
+VTWAX,Other,"Vanguard Total World Stock Index Fund (mixed US/Intl -- same as VT, classify as a Fund for a precise split)"

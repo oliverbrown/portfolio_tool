@@ -1,0 +1,15 @@
+# Optional dependencies -- NOT needed for the core pt tool (see
+# requirements.txt for that). Install only if you want the feature that
+# needs it:
+#
+#   scripts/update_market_data.py -- fetches sector weights/expense ratios
+#   for your held symbols from Yahoo Finance. This is the one place in the
+#   whole project that makes a network call; the core tool never does.
+yfinance>=0.2
+
+#   `pt.cli project`/`monte-carlo --out *.png` -- saves a chart image
+#   instead of a text file or Excel workbook (see pt/charts.py). Excel
+#   output (--out *.xlsx) already gets native charts with no extra
+#   dependency (openpyxl.chart, part of the core openpyxl install) --
+#   matplotlib is only needed for the standalone-image option.
+matplotlib>=3.7

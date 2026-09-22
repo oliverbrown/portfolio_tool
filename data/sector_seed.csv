@@ -1,0 +1,505 @@
+symbol,sector,weight
+VXUS,Information Technology,0.220400
+VXUS,Financials,0.223600
+VXUS,Industrials,0.152200
+VXUS,Consumer Discretionary,0.080100
+VXUS,Health Care,0.067300
+VXUS,Communication Services,0.039400
+VXUS,Energy,0.042100
+VXUS,Consumer Staples,0.049300
+VXUS,Materials,0.072000
+VXUS,Utilities,0.030900
+VXUS,Real Estate,0.022800
+VTI,Information Technology,0.355600
+VTI,Financials,0.120500
+VTI,Industrials,0.104600
+VTI,Consumer Discretionary,0.092900
+VTI,Health Care,0.096600
+VTI,Communication Services,0.090000
+VTI,Energy,0.031600
+VTI,Consumer Staples,0.043200
+VTI,Materials,0.020600
+VTI,Utilities,0.021800
+VTI,Real Estate,0.022500
+AVUV,Information Technology,0.054200
+AVUV,Financials,0.291200
+AVUV,Industrials,0.147400
+AVUV,Consumer Discretionary,0.178900
+AVUV,Health Care,0.038800
+AVUV,Communication Services,0.024800
+AVUV,Energy,0.157500
+AVUV,Consumer Staples,0.050600
+AVUV,Materials,0.047800
+AVUV,Utilities,0.003500
+AVUV,Real Estate,0.005300
+SCHB,Information Technology,0.351200
+SCHB,Financials,0.129500
+SCHB,Industrials,0.098000
+SCHB,Consumer Discretionary,0.090300
+SCHB,Health Care,0.097800
+SCHB,Communication Services,0.087400
+SCHB,Energy,0.035100
+SCHB,Consumer Staples,0.044900
+SCHB,Materials,0.021200
+SCHB,Utilities,0.021500
+SCHB,Real Estate,0.023100
+AA,Materials,1.000000
+BABA,Consumer Discretionary,1.000000
+GOOG,Communication Services,1.000000
+AMZN,Consumer Discretionary,1.000000
+APH,Information Technology,1.000000
+AAPL,Information Technology,1.000000
+BRKB,Financials,1.000000
+CVX,Energy,1.000000
+CSCO,Information Technology,1.000000
+XOM,Energy,1.000000
+META,Communication Services,1.000000
+GS,Financials,1.000000
+ISRG,Health Care,1.000000
+LVS,Consumer Discretionary,1.000000
+MA,Financials,1.000000
+MSFT,Information Technology,1.000000
+NFLX,Communication Services,1.000000
+NVDA,Information Technology,1.000000
+ORCL,Information Technology,1.000000
+SPCX,Communication Services,1.000000
+UNH,Health Care,1.000000
+V,Financials,1.000000
+WMT,Consumer Staples,1.000000
+OMR5,Information Technology,0.368400
+OMR5,Financials,0.124300
+OMR5,Industrials,0.085600
+OMR5,Consumer Discretionary,0.094200
+OMR5,Health Care,0.091100
+OMR5,Communication Services,0.097600
+OMR5,Energy,0.033600
+OMR5,Consumer Staples,0.046700
+OMR5,Materials,0.018100
+OMR5,Utilities,0.021500
+OMR5,Real Estate,0.018800
+OMR6,Information Technology,0.519000
+OMR6,Financials,0.041400
+OMR6,Industrials,0.060200
+OMR6,Consumer Discretionary,0.145400
+OMR6,Health Care,0.067500
+OMR6,Communication Services,0.130800
+OMR6,Energy,0.003600
+OMR6,Consumer Staples,0.020600
+OMR6,Materials,0.003700
+OMR6,Utilities,0.002900
+OMR6,Real Estate,0.004800
+OMS1,Information Technology,0.256100
+OMS1,Financials,0.197000
+OMS1,Industrials,0.144300
+OMS1,Consumer Discretionary,0.077900
+OMS1,Health Care,0.068800
+OMS1,Communication Services,0.042900
+OMS1,Energy,0.056700
+OMS1,Consumer Staples,0.011800
+OMS1,Materials,0.108900
+OMS1,Utilities,0.029500
+OMS1,Real Estate,0.006100
+OMS4,Information Technology,0.173900
+OMS4,Financials,0.270400
+OMS4,Industrials,0.098600
+OMS4,Consumer Discretionary,0.058500
+OMS4,Health Care,0.016500
+OMS4,Communication Services,0.054100
+OMS4,Energy,0.135100
+OMS4,Consumer Staples,0.065700
+OMS4,Materials,0.056700
+OMS4,Utilities,0.057600
+OMS4,Real Estate,0.013000
+FXAIX,Information Technology,0.380800
+FXAIX,Financials,0.117700
+FXAIX,Industrials,0.088100
+FXAIX,Consumer Discretionary,0.093200
+FXAIX,Health Care,0.089000
+FXAIX,Communication Services,0.096900
+FXAIX,Energy,0.029800
+FXAIX,Consumer Staples,0.045700
+FXAIX,Materials,0.018300
+FXAIX,Utilities,0.022000
+FXAIX,Real Estate,0.018300
+FFSM,Information Technology,0.142000
+FFSM,Financials,0.150300
+FFSM,Industrials,0.266500
+FFSM,Consumer Discretionary,0.115300
+FFSM,Health Care,0.112900
+FFSM,Communication Services,0.006000
+FFSM,Energy,0.036800
+FFSM,Consumer Staples,0.040400
+FFSM,Materials,0.056100
+FFSM,Utilities,0.021800
+FFSM,Real Estate,0.052100
+FMAG,Information Technology,0.457500
+FMAG,Financials,0.077000
+FMAG,Industrials,0.167900
+FMAG,Consumer Discretionary,0.110700
+FMAG,Health Care,0.024200
+FMAG,Communication Services,0.109000
+FMAG,Consumer Staples,0.015600
+FMAG,Materials,0.037900
+FDRR,Information Technology,0.350400
+FDRR,Financials,0.133200
+FDRR,Industrials,0.099000
+FDRR,Consumer Discretionary,0.079300
+FDRR,Health Care,0.100300
+FDRR,Communication Services,0.093600
+FDRR,Energy,0.034300
+FDRR,Consumer Staples,0.046700
+FDRR,Materials,0.020100
+FDRR,Utilities,0.021500
+FDRR,Real Estate,0.021400
+SPY,Information Technology,0.368100
+SPY,Financials,0.124900
+SPY,Industrials,0.085500
+SPY,Consumer Discretionary,0.094100
+SPY,Health Care,0.091100
+SPY,Communication Services,0.097500
+SPY,Energy,0.033600
+SPY,Consumer Staples,0.046700
+SPY,Materials,0.018100
+SPY,Utilities,0.021500
+SPY,Real Estate,0.018900
+DB,Financials,1.000000
+TTE,Energy,1.000000
+ANFGF,Materials,1.000000
+AZN,Health Care,1.000000
+CCEP,Consumer Staples,1.000000
+ICLR,Health Care,1.000000
+GLNG,Energy,1.000000
+UBS,Financials,1.000000
+LOGI,Information Technology,1.000000
+KYCCF,Information Technology,1.000000
+SPOT,Communication Services,1.000000
+CLBT,Information Technology,1.000000
+CHKP,Information Technology,1.000000
+ESLT,Industrials,1.000000
+ENLT,Utilities,1.000000
+GLBE,Consumer Discretionary,1.000000
+INMD,Health Care,1.000000
+FROG,Information Technology,1.000000
+MNDY,Information Technology,1.000000
+WIX,Information Technology,1.000000
+AER,Industrials,1.000000
+ASMIY,Information Technology,1.000000
+ASML,Information Technology,1.000000
+RACE,Consumer Discretionary,1.000000
+FER,Industrials,1.000000
+STLA,Consumer Discretionary,1.000000
+IREN,Information Technology,1.000000
+IVSBF,Financials,1.000000
+ABBNY,Industrials,1.000000
+ACSAY,Industrials,1.000000
+AAGIY,Financials,1.000000
+AIBGY,Financials,1.000000
+AMKBY,Industrials,1.000000
+ASXFY,Financials,1.000000
+ADDYY,Consumer Discretionary,1.000000
+AMIGY,Financials,1.000000
+ATEYY,Information Technology,1.000000
+AONNY,Consumer Staples,1.000000
+AGESY,Financials,1.000000
+AIQUY,Materials,1.000000
+EADSY,Industrials,1.000000
+AJNMY,Consumer Staples,1.000000
+AKZOY,Materials,1.000000
+ALFVY,Industrials,1.000000
+ALIZY,Financials,1.000000
+NGLOY,Materials,1.000000
+BUD,Consumer Staples,1.000000
+ANZGY,Financials,1.000000
+MT,Materials,1.000000
+ARGX,Health Care,1.000000
+AHKSY,Materials,1.000000
+ASCCY,Consumer Discretionary,1.000000
+ASAZY,Industrials,1.000000
+ARZGY,Financials,1.000000
+ASBFY,Consumer Staples,1.000000
+ATLKY,Industrials,1.000000
+AVVIY,Financials,1.000000
+AXAHY,Financials,1.000000
+BAESY,Industrials,1.000000
+BASFY,Materials,1.000000
+BP,Energy,1.000000
+BNPQY,Financials,1.000000
+BBVA,Financials,1.000000
+SAN,Financials,1.000000
+NCBDY,Consumer Discretionary,1.000000
+BKHYY,Financials,1.000000
+BKRIY,Financials,1.000000
+BCS,Financials,1.000000
+BAYRY,Health Care,1.000000
+BMWKY,Consumer Discretionary,1.000000
+BDRFY,Consumer Staples,1.000000
+BHP,Materials,1.000000
+BHKLY,Financials,1.000000
+BXBLY,Industrials,1.000000
+BRDCY,Consumer Discretionary,1.000000
+BTI,Consumer Staples,1.000000
+BZLFY,Industrials,1.000000
+CKHUY,Industrials,1.000000
+CSLLY,Health Care,1.000000
+CAIXY,Financials,1.000000
+CAJPY,Information Technology,1.000000
+CABGY,Consumer Staples,1.000000
+CLLNY,Communication Services,1.000000
+CJPRY,Industrials,1.000000
+CPYYY,Utilities,1.000000
+CHLSY,Consumer Staples,1.000000
+CHGCY,Health Care,1.000000
+CLPHY,Utilities,1.000000
+CHEOY,Health Care,1.000000
+CRZBY,Financials,1.000000
+CMWAY,Financials,1.000000
+CODYY,Industrials,1.000000
+CFRUY,Consumer Discretionary,1.000000
+CMPGY,Consumer Discretionary,1.000000
+CMSQY,Industrials,1.000000
+CRDIY,Financials,1.000000
+CRARY,Financials,1.000000
+DBSDY,Financials,1.000000
+DNBBY,Financials,1.000000
+DSFIY,Materials,1.000000
+DLICY,Financials,1.000000
+DFKUY,Industrials,1.000000
+DKILY,Industrials,1.000000
+DSNKY,Health Care,1.000000
+DTRUY,Industrials,1.000000
+DWAHY,Real Estate,1.000000
+DSEEY,Financials,1.000000
+DANOY,Consumer Staples,1.000000
+DNKEY,Financials,1.000000
+DASTY,Information Technology,1.000000
+DNZOY,Consumer Discretionary,1.000000
+DBOEY,Financials,1.000000
+DTEGY,Communication Services,1.000000
+DHLGY,Industrials,1.000000
+DEO,Consumer Staples,1.000000
+DPMAY,Industrials,1.000000
+DSCSY,Information Technology,1.000000
+EDPFY,Utilities,1.000000
+E,Energy,1.000000
+EONGY,Utilities,1.000000
+EBCOY,Industrials,1.000000
+ESAIY,Health Care,1.000000
+ENLAY,Utilities,1.000000
+ENGIY,Utilities,1.000000
+EQNR,Energy,1.000000
+EBKDY,Financials,1.000000
+ESLOY,Health Care,1.000000
+EVVTY,Consumer Discretionary,1.000000
+EVMNY,Materials,1.000000
+EXPGY,Industrials,1.000000
+FRCOY,Consumer Discretionary,1.000000
+FSUGY,Materials,1.000000
+FSNUY,Health Care,1.000000
+FUJIY,Information Technology,1.000000
+FJIKY,Industrials,1.000000
+FJTSY,Information Technology,1.000000
+GXYYY,Consumer Discretionary,1.000000
+GALDY,Health Care,1.000000
+GBERY,Industrials,1.000000
+GVDNY,Materials,1.000000
+GSK,Health Care,1.000000
+GLNCY,Materials,1.000000
+HSBC,Financials,1.000000
+HLN,Health Care,1.000000
+HVRRY,Financials,1.000000
+HDLMY,Materials,1.000000
+HEINY,Consumer Staples,1.000000
+HESAY,Consumer Discretionary,1.000000
+HXGBY,Information Technology,1.000000
+HTHIY,Industrials,1.000000
+HMC,Consumer Discretionary,1.000000
+HKXCY,Financials,1.000000
+IHICY,Industrials,1.000000
+IBDRY,Utilities,1.000000
+IBIDY,Information Technology,1.000000
+IMBBY,Consumer Staples,1.000000
+IDEXY,Consumer Discretionary,1.000000
+IFNNY,Information Technology,1.000000
+IFJPY,Communication Services,1.000000
+ING,Financials,1.000000
+IHG,Consumer Discretionary,1.000000
+ICAGY,Industrials,1.000000
+IKTSY,Industrials,1.000000
+ISNPY,Financials,1.000000
+ISUZY,Consumer Discretionary,1.000000
+ITOCY,Industrials,1.000000
+JAPSY,Industrials,1.000000
+JPXGY,Financials,1.000000
+JAPAY,Consumer Staples,1.000000
+JMHLY,Industrials,1.000000
+JBAXY,Financials,1.000000
+KAOOY,Consumer Staples,1.000000
+KDDIY,Communication Services,1.000000
+PPRUY,Consumer Discretionary,1.000000
+KRYAY,Consumer Staples,1.000000
+KGSPY,Industrials,1.000000
+KXIAY,Information Technology,1.000000
+KNBWY,Consumer Staples,1.000000
+KMTUY,Industrials,1.000000
+ADRNY,Consumer Staples,1.000000
+PHG,Health Care,1.000000
+KUBTY,Industrials,1.000000
+KHNGY,Industrials,1.000000
+KYOAY,Information Technology,1.000000
+LRLCY,Consumer Staples,1.000000
+LVMUY,Consumer Discretionary,1.000000
+LSRCY,Information Technology,1.000000
+LGGNY,Financials,1.000000
+LGRDY,Industrials,1.000000
+FINMY,Industrials,1.000000
+LYG,Financials,1.000000
+LSEGY,Financials,1.000000
+LZAGY,Health Care,1.000000
+MSADY,Financials,1.000000
+MTHRY,Health Care,1.000000
+MQBKY,Financials,1.000000
+MKTAY,Industrials,1.000000
+MAKSY,Consumer Staples,1.000000
+MARUY,Industrials,1.000000
+MKKGY,Health Care,1.000000
+OUKPY,Industrials,1.000000
+MGDDY,Consumer Discretionary,1.000000
+MTSUY,Industrials,1.000000
+MIELY,Industrials,1.000000
+MITEY,Real Estate,1.000000
+MHVIY,Industrials,1.000000
+MUFG,Financials,1.000000
+MITSY,Industrials,1.000000
+MTSFY,Real Estate,1.000000
+MFG,Financials,1.000000
+MTUAY,Industrials,1.000000
+MURGY,Financials,1.000000
+MRAAY,Information Technology,1.000000
+NNGRY,Financials,1.000000
+NABZY,Financials,1.000000
+NGG,Utilities,1.000000
+NWG,Financials,1.000000
+NTOIY,Energy,1.000000
+NSRGY,Consumer Staples,1.000000
+NTDOY,Communication Services,1.000000
+NPSCY,Materials,1.000000
+NTTYY,Communication Services,1.000000
+NPNYY,Industrials,1.000000
+NDEKY,Materials,1.000000
+NOK,Information Technology,1.000000
+NMR,Financials,1.000000
+NRILY,Information Technology,1.000000
+NRDBY,Financials,1.000000
+NHYDY,Materials,1.000000
+NVS,Health Care,1.000000
+NVO,Health Care,1.000000
+NVZMY,Materials,1.000000
+OLYMY,Health Care,1.000000
+ORANY,Communication Services,1.000000
+OLCLY,Consumer Discretionary,1.000000
+IX,Financials,1.000000
+ORKLY,Consumer Staples,1.000000
+OTSKY,Health Care,1.000000
+OVCHY,Financials,1.000000
+PCRHY,Consumer Discretionary,1.000000
+PNDRY,Consumer Discretionary,1.000000
+PSO,Consumer Discretionary,1.000000
+PRNDY,Consumer Staples,1.000000
+PROSY,Consumer Discretionary,1.000000
+PRYMY,Industrials,1.000000
+PUBGY,Communication Services,1.000000
+QBIEY,Financials,1.000000
+RWEOY,Utilities,1.000000
+RBGLY,Consumer Staples,1.000000
+RCRUY,Industrials,1.000000
+RELX,Industrials,1.000000
+RNECY,Information Technology,1.000000
+RTO,Industrials,1.000000
+REPYY,Energy,1.000000
+RSHGY,Financials,1.000000
+RIO,Materials,1.000000
+RHHBY,Health Care,1.000000
+RYCEY,Industrials,1.000000
+SHEL,Energy,1.000000
+SKFRY,Industrials,1.000000
+SMCAY,Industrials,1.000000
+SSEZY,Utilities,1.000000
+SAABY,Industrials,1.000000
+SAFRY,Industrials,1.000000
+SAXPY,Financials,1.000000
+SNY,Health Care,1.000000
+SAP,Information Technology,1.000000
+SBGSY,Industrials,1.000000
+SE,Consumer Discretionary,1.000000
+SOMLY,Industrials,1.000000
+SVNDY,Consumer Staples,1.000000
+STRNY,Utilities,1.000000
+SGSOY,Industrials,1.000000
+SMNNY,Consumer Discretionary,1.000000
+SHECY,Materials,1.000000
+SIEGY,Industrials,1.000000
+SMERY,Industrials,1.000000
+SXYAY,Materials,1.000000
+SGAPY,Communication Services,1.000000
+SPXCY,Financials,1.000000
+SKBSY,Industrials,1.000000
+SNN,Health Care,1.000000
+SMGZY,Industrials,1.000000
+SCGLY,Financials,1.000000
+SFTBY,Communication Services,1.000000
+SONY,Consumer Discretionary,1.000000
+SFGYY,Financials,1.000000
+SOUHY,Materials,1.000000
+SPXSY,Industrials,1.000000
+SCBFY,Financials,1.000000
+STM,Information Technology,1.000000
+SEOAY,Materials,1.000000
+SAUHY,Health Care,1.000000
+FUJHY,Consumer Discretionary,1.000000
+SUBCY,Energy,1.000000
+SSUMY,Industrials,1.000000
+SMTOY,Consumer Discretionary,1.000000
+SMFG,Financials,1.000000
+SUTNY,Financials,1.000000
+SUHJY,Real Estate,1.000000
+SNMCY,Financials,1.000000
+SVNLY,Financials,1.000000
+SZKMY,Consumer Discretionary,1.000000
+SWDBY,Financials,1.000000
+SSREY,Financials,1.000000
+SYIEY,Materials,1.000000
+SSMXY,Health Care,1.000000
+TTDKY,Information Technology,1.000000
+TAK,Health Care,1.000000
+TTNDY,Industrials,1.000000
+TLTZY,Communication Services,1.000000
+TLSNY,Communication Services,1.000000
+TLX,Health Care,1.000000
+TEZNY,Utilities,1.000000
+TRUMY,Health Care,1.000000
+TSCDY,Consumer Staples,1.000000
+TEVA,Health Care,1.000000
+THLLY,Industrials,1.000000
+TGOPY,Financials,1.000000
+TKOMY,Financials,1.000000
+TOELY,Information Technology,1.000000
+TRYIY,Materials,1.000000
+TM,Consumer Discretionary,1.000000
+TMICY,Information Technology,1.000000
+UNCRY,Financials,1.000000
+UL,Consumer Staples,1.000000
+UOVEY,Financials,1.000000
+UUGRY,Utilities,1.000000
+VEOEY,Utilities,1.000000
+VWDRY,Industrials,1.000000
+VOD,Communication Services,1.000000
+VLVLY,Industrials,1.000000
+VONOY,Real Estate,1.000000
+WEGRY,Industrials,1.000000
+WFAFY,Consumer Discretionary,1.000000
+WJRYY,Industrials,1.000000
+WLMIY,Consumer Staples,1.000000
+WTKWY,Industrials,1.000000
+WDS,Energy,1.000000
+YAHOY,Communication Services,1.000000
+ZURVY,Financials,1.000000
