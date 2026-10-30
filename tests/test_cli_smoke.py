@@ -190,7 +190,7 @@ hypothetical_accounts:
                               "--scenario", str(h.TEST_SCENARIO), "--profile", str(h.TEST_PROFILE))
             self.assertEqual(result.returncode, 0, result.stderr)
             names = openpyxl.load_workbook(xlsx).sheetnames
-            for dropped in ("Holdings", "Investment Expenses", "IPS Comparison",
+            for dropped in ("Holdings", "Holdings by Ticker", "Investment Expenses", "IPS Comparison",
                             "IPS Comparison (Macro)", "IPS by Account", "Unclassified"):
                 self.assertNotIn(dropped, names)
             # Account Number column gone; decedent dates present (test_data's
@@ -222,12 +222,66 @@ hypothetical_accounts:
             wb = openpyxl.load_workbook(xlsx)
             for kept in ("Holdings", "Investment Expenses", "IPS Comparison", "IPS Comparison (Macro)", "Unclassified"):
                 self.assertIn(kept, wb.sheetnames)
+            # Holdings by Ticker sits right after Holdings
+            self.assertEqual(wb.sheetnames.index("Holdings by Ticker"), wb.sheetnames.index("Holdings") + 1)
+
+            # Holdings: % of Portfolio sums to 100% overall, % of Account to
+            # 100% within each account. Holdings has no account-number column
+            # and two test accounts share a name ("ROLLOVER IRA"), so each
+            # name's shares sum to 100% x the number of accounts with it.
+            hold = list(wb["Holdings"].iter_rows(values_only=True))
+            hdr = list(hold[0])
+            self.assertEqual(hdr[hdr.index("Current Value") + 1:hdr.index("Current Value") + 3],
+                             ["% of Portfolio", "% of Account"])
+            self.assertEqual(hdr[hdr.index("% of Account") + 1], "Asset Class")
+            rows = hold[1:]
+            port_col, acct_col, acct_name_col = hdr.index("% of Portfolio"), hdr.index("% of Account"), 0
+            self.assertAlmostEqual(sum(r[port_col] for r in rows), 1.0, places=6)
+            by_acct = {}
+            for r in rows:
+                by_acct[r[acct_name_col]] = by_acct.get(r[acct_name_col], 0.0) + r[acct_col]
+            acct_tab = list(wb["Accounts"].iter_rows(values_only=True))
+            name_col = acct_tab[0].index("Account Name")
+            accounts_named = {}
+            for r in acct_tab[1:]:
+                accounts_named[r[name_col]] = accounts_named.get(r[name_col], 0) + 1
+            for name, share in by_acct.items():
+                self.assertAlmostEqual(share, accounts_named[name], places=6, msg=name)
+
+            # Holdings by Ticker: one row per symbol whose values add up to
+            # the per-position values on Holdings, then a TOTAL row.
+            tick = list(wb["Holdings by Ticker"].iter_rows(values_only=True))
+            self.assertEqual(list(tick[0][:5]), ["Symbol", "Description", "Total Quantity", "Total Value",
+                                                 "% of Portfolio"])
+            tick_rows, total = tick[1:-1], tick[-1]
+            self.assertEqual(total[0], "TOTAL")
+            sym_col, val_col = hdr.index("Symbol"), hdr.index("Current Value")
+            expected = {}
+            for r in rows:
+                expected[r[sym_col]] = expected.get(r[sym_col], 0.0) + r[val_col]
+            self.assertEqual({r[0] for r in tick_rows}, set(expected))
+            for r in tick_rows:
+                self.assertAlmostEqual(r[3], expected[r[0]], places=2)
+            self.assertEqual([r[3] for r in tick_rows], sorted((r[3] for r in tick_rows), reverse=True))
+            self.assertAlmostEqual(sum(r[4] for r in tick_rows), 1.0, places=6)
+            self.assertAlmostEqual(total[3], sum(expected.values()), places=2)
+
             acct_header = [c.value for c in wb["Accounts"][1]]
             self.assertEqual(acct_header[0], "Account Number")
             self.assertIn("Decedent Date of Death", acct_header)
-            # scenario dump keeps real account numbers in the private view
+            # account numbers show only their last 4 digits in the private view
+            acct_nums = [r[0] for r in wb["Accounts"].iter_rows(min_row=2, max_col=1, values_only=True) if r[0]]
+            self.assertTrue(acct_nums)
+            for num in acct_nums:
+                self.assertTrue(len(num) <= 4 or (num.startswith("...") and len(num) == 7), num)
+            # ...and the scenario dump masks them the same way, not "<redacted>"
             proj_col_a = [r[0] for r in wb["Projection"].iter_rows(min_col=1, max_col=1, values_only=True)]
-            self.assertFalse(any("account_number: <redacted>" in str(v) for v in proj_col_a if v))
+            acct_lines = [str(v) for v in proj_col_a if v and "account_number:" in str(v)]
+            self.assertTrue(acct_lines)
+            self.assertFalse(any("<redacted>" in v for v in acct_lines))
+            for line in acct_lines:
+                value = line.split("account_number:", 1)[1].strip().strip("'\"")
+                self.assertTrue(len(value) <= 4 or value.startswith("..."), line)
             self.assertIn("test-fidelity", wb["Summary"]["A2"].value)
             self.assertIn("test-fidelity", txt.read_text())
 

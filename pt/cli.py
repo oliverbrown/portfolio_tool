@@ -321,6 +321,7 @@ def cmd_targets_set(args):
         sys.exit(1)
     scope = f"account {args.account}" if args.account else "household"
     print(f"Target for '{args.asset_class}' ({scope}) set to {args.pct*100:.1f}%.")
+    _print_target_warnings(conn, args.account)
 
 
 def cmd_targets_clear(args):
@@ -333,34 +334,86 @@ def cmd_targets_clear(args):
     scope = f"account {args.account}" if args.account else "household"
     if removed:
         print(f"Cleared the {scope} target for '{args.asset_class}'.")
+        _print_target_warnings(conn, args.account)
     else:
         print(f"No {scope} target was set for '{args.asset_class}' -- nothing to clear.")
 
 
+# Wide enough for the longest subclass name ("Intermediate Treasuries (3-7 year)")
+# indented under its macro.
+TARGET_NAME_WIDTH = 38
+
+
+def _target_check(conn, account_number=None) -> list:
+    """check_targets() warnings for the household, or for one account's
+    effective (subclass-only) targets, which must sum to 100% of the account."""
+    if account_number:
+        targets, _ = ips_mod.get_effective_targets(conn, account_number)
+        return ips_mod.check_targets({}, targets)
+    return ips_mod.check_household_targets(conn)
+
+
+def _print_target_warnings(conn, account_number=None):
+    warnings = _target_check(conn, account_number)
+    if warnings:
+        print("WARNING: targets don't add up -- run `targets show` for the full picture:")
+        for w in warnings:
+            print(f"  - {w}")
+
+
 def cmd_targets_show(args):
+    """Targets as a macro -> subclass tree. Every percentage is of the whole
+    portfolio (or account); a macro's subclass subtotal is shown, and
+    flagged, when it doesn't match that macro's own target."""
     conn = db_mod.get_connection(args.db)
     if args.account:
-        targets, overridden = ips_mod.get_effective_targets(conn, args.account)
-        if not targets:
+        subclass_targets, overridden = ips_mod.get_effective_targets(conn, args.account)
+        macro_targets = {}
+        if not subclass_targets:
             print(f"No IPS targets set yet (checked account {args.account} and the household).")
             return
-        total = sum(targets.values())
-        for ac, pct in targets.items():
-            tag = "  [account override]" if ac in overridden else ""
-            print(f"  {ac:<24} {pct*100:>6.1f}%{tag}")
-        flag = "  <-- WARNING: targets don't sum to 100%" if abs(total - 1.0) > 0.001 else ""
-        print(f"  {'TOTAL':<24} {total*100:>6.1f}%{flag}")
-        return
+        print(f"Effective targets for account {args.account} (% of the account):")
+    else:
+        subclass_targets, overridden = ips_mod.get_subclass_targets(conn), set()
+        macro_targets = ips_mod.get_macro_targets(conn)
+        if not subclass_targets and not macro_targets:
+            print("No IPS targets set yet.")
+            return
+        print("IPS targets (% of the whole portfolio):")
 
-    targets = ips_mod.get_targets(conn)
-    if not targets:
-        print("No IPS targets set yet.")
-        return
-    total = sum(targets.values())
-    for ac, pct in targets.items():
-        print(f"  {ac:<24} {pct*100:>6.1f}%")
-    flag = "  <-- WARNING: targets don't sum to 100%" if abs(total - 1.0) > 0.001 else ""
-    print(f"  {'TOTAL':<24} {total*100:>6.1f}%{flag}")
+    w = TARGET_NAME_WIDTH
+    for macro, macro_pct, sub_rows, subtotal in ips_mod.target_tree(macro_targets, subclass_targets):
+        if macro_pct is not None:
+            macro_col = f"{macro_pct*100:>6.1f}%"
+        elif macro_targets:
+            macro_col = "     --"
+        else:  # no macro targets at this level (e.g. an account) -- show the rollup instead
+            macro_col = f"{subtotal*100:>6.1f}%  (sum of subclasses)"
+        print(f"  {macro:<{w}} {macro_col}")
+        for sub, pct in sub_rows:
+            tag = "  [account override]" if sub in overridden else ""
+            print(f"    {sub:<{w - 2}} {pct*100:>6.1f}%{tag}")
+        if sub_rows and macro_pct is not None:
+            gap = subtotal - macro_pct
+            flag = ""
+            if abs(gap) > ips_mod.SUM_TOLERANCE:
+                flag = f"  <-- {abs(gap)*100:.1f}% {'over' if gap > 0 else 'short of'} {macro}"
+            print(f"    {'subtotal':<{w - 2}} {subtotal*100:>6.1f}%{flag}")
+        elif not sub_rows and macro_targets:
+            print("    (no subclass split)")
+
+    level_targets = macro_targets or subclass_targets
+    total = sum(level_targets.values())
+    label = "TOTAL (macro classes)" if macro_targets else "TOTAL"
+    flag = "  <-- should be 100%" if abs(total - 1.0) > ips_mod.SUM_TOLERANCE else ""
+    print(f"  {label:<{w}} {total*100:>6.1f}%{flag}")
+
+    warnings = _target_check(conn, args.account)
+    if warnings:
+        print()
+        print("Warnings:")
+        for warning in warnings:
+            print(f"  - {warning}")
 
 
 def cmd_accounts_list(args):

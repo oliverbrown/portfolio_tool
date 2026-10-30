@@ -722,8 +722,9 @@ say which broker it's from, just pass the file to `import`.
 python3 -m pt.cli seed-classifications
 
 # One-time setup: set your IPS targets (fractions, must sum to ~1.0 at
-# whichever level you use -- see "Asset class hierarchy" below). Macro and
-# subclass targets are independent; use either, both, or neither.
+# whichever level you use -- see "Asset class hierarchy" below). Every
+# target is a % of the whole portfolio; a macro's subclass targets should
+# sum to that macro's target (`targets show` flags any that don't).
 python3 -m pt.cli targets set "Growth" 0.60
 python3 -m pt.cli targets set "Income" 0.30
 python3 -m pt.cli targets set "Liquidity" 0.05
@@ -888,15 +889,25 @@ Insurance
 ```
 
 Macro totals are a rollup of their subclasses, computed on the fly -- there's
-nothing to keep in sync. **IPS targets can be set at either level**,
-independently: a macro target, a subclass target, both, or neither, per
-branch of the tree:
+nothing to keep in sync. **IPS targets can be set at either level**: a
+macro target, a subclass target, both, or neither, per branch of the tree.
+Every target is a % of the whole portfolio, so when a branch has both, its
+subclass targets should add up to the macro's target:
 
 ```bash
 python3 -m pt.cli targets set "Growth" 0.60          # macro-level target
-python3 -m pt.cli targets set "US Equity" 0.45        # subclass-level target, doesn't have to relate to Growth's 60%
+python3 -m pt.cli targets set "US Equity" 0.45        # subclass-level target (45% of the portfolio)
+python3 -m pt.cli targets set "International Equity" 0.15   # 45% + 15% = Growth's 60%
 python3 -m pt.cli targets clear "US Equity"          # remove it again (household-wide; add --account to clear one account's override)
+python3 -m pt.cli targets show                       # macro -> subclass tree with subtotals
 ```
+
+`targets show` prints the targets as a tree and warns when the macro targets
+don't sum to 100%, or a macro's subclass targets don't sum to its own target
+(`targets set`/`clear` print the same warnings, but never refuse the change,
+so you can fix things one target at a time). A macro with no subclass
+targets at all has no subclass split: its subclasses are left out of the
+by-asset-class comparison instead of being read as 0% targets.
 
 The report shows two parallel "ACTUAL vs. IPS TARGET" sections -- by macro
 class and by asset (sub)class -- each showing actual totals regardless of

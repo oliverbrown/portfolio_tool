@@ -2,6 +2,7 @@
 Excel workbook with one tab per view of the data."""
 import math
 import sys
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
@@ -37,6 +38,12 @@ BOLD_FONT = Font(name=FONT_NAME, bold=True)
 MONO_FONT = Font(name="Courier New")
 CURRENCY_FMT = '$#,##0;($#,##0)'
 PCT_FMT = '0.0%'
+# Two decimals for a single position's share of its account -- with hundreds
+# of holdings, most are well under 0.1% and would all read "0.0%" in PCT_FMT.
+HOLDING_PCT_FMT = '0.00%'
+# Four decimals for a position's (or ticker's) share of the whole portfolio,
+# which is smaller still.
+PORTFOLIO_SHARE_FMT = '0.0000%'
 EXPENSE_FMT = '0.00%'
 # For a chart y-axis only (see _add_line_chart()) -- NOT used for any
 # worksheet cell, which always shows the full dollar amount via
@@ -292,18 +299,29 @@ def _autosize(ws, widths):
         ws.column_dimensions[get_column_letter(i)].width = w
 
 
-def _redact_account_numbers(obj):
+def _mask_account_number(num) -> str:
+    """'...1234' -- just the last 4 digits of an account number, for the
+    private report's Accounts tab and scenario dump. Numbers of 4 or fewer
+    characters are shown as-is; None/'' stays ''."""
+    if num is None or num == "":
+        return ""
+    num = str(num)
+    return num if len(num) <= 4 else f"...{num[-4:]}"
+
+
+def _redact_account_numbers(obj, replace=lambda num: "<redacted>"):
     """A deep copy of `obj` (a scenario dict, or any nested piece of one)
     with every value stored under a key literally named "account_number"
-    replaced by "<redacted>" -- for the public report's SCENARIO
-    CONFIGURATION dump, where scenario.inherited_accounts[].account_number
-    is a real brokerage account number. Everything else is copied
-    unchanged."""
+    passed through `replace` -- "<redacted>" by default, for the public
+    report's SCENARIO CONFIGURATION dump, where
+    scenario.inherited_accounts[].account_number is a real brokerage
+    account number (the private report passes _mask_account_number to keep
+    just the last 4). Everything else is copied unchanged."""
     if isinstance(obj, dict):
-        return {k: ("<redacted>" if k == "account_number" else _redact_account_numbers(v))
+        return {k: (replace(v) if k == "account_number" else _redact_account_numbers(v, replace))
                 for k, v in obj.items()}
     if isinstance(obj, list):
-        return [_redact_account_numbers(v) for v in obj]
+        return [_redact_account_numbers(v, replace) for v in obj]
     return obj
 
 
@@ -322,7 +340,8 @@ def _inherited_date_cells(entry: dict) -> list:
     ]
 
 
-def _write_scenario_config(ws, scenario: dict, start_row: int, public: bool = False) -> int:
+def _write_scenario_config(ws, scenario: dict, start_row: int, public: bool = False,
+                           mask_accounts: bool = False) -> int:
     """Writes the raw scenario dict (see pt/scenario.py) back out as YAML
     -- the same format the scenario file itself uses -- starting at
     start_row, one line per row in column A. A single giant blob in one
@@ -333,11 +352,15 @@ def _write_scenario_config(ws, scenario: dict, start_row: int, public: bool = Fa
     than alphabetizing (see format_scenario_config()'s docstring in
     pt/projection.py, which this mirrors for the text report).
     public=True redacts account_number values first (see
-    _redact_account_numbers()). Returns the next free row after this block."""
+    _redact_account_numbers()); mask_accounts=True (the private report)
+    trims them to their last 4 digits instead. Returns the next free row
+    after this block."""
     header_cell = ws.cell(row=start_row, column=1, value="SCENARIO CONFIGURATION")
     header_cell.font = BOLD_FONT
     if public:
         scenario = _redact_account_numbers(scenario)
+    elif mask_accounts:
+        scenario = _redact_account_numbers(scenario, _mask_account_number)
     lines = yaml.safe_dump(scenario, default_flow_style=False, sort_keys=False, allow_unicode=True).splitlines()
     for i, line in enumerate(lines, start=start_row + 1):
         cell = ws.cell(row=i, column=1, value=line)
@@ -1051,24 +1074,68 @@ def build_workbook(conn, snapshot_id: int, profile_path=None, scenario_path=None
 
     _autosize(ws, [24, 14, 14, 12, 16, 20])
 
-    # --- Holdings tab (private only -- per-symbol positions)
+    # --- Holdings tab (private only -- per-symbol positions), with each
+    # position's share of the whole portfolio and of its own account.
     if not public:
+        portfolio_value = sum(h["current_value"] or 0.0 for h in holdings)
+        account_values = defaultdict(float)
+        for h in holdings:
+            account_values[h["account_number"]] += h["current_value"] or 0.0
+
+        def _share(value, whole):
+            return (value or 0.0) / whole if whole else 0.0
+
         ws = wb.create_sheet("Holdings")
         headers = ["Account", "Owner", "Account Type", "Symbol", "Description", "Quantity",
-                   "Last Price", "Current Value", "Asset Class", "Style", "Sector", "Expense Ratio"]
+                   "Last Price", "Current Value", "% of Portfolio", "% of Account",
+                   "Asset Class", "Style", "Sector", "Expense Ratio"]
         data = [(h["account_name"], h["owner"] or "", h["account_type"], h["symbol"], h["description"],
-                  h["quantity"], h["last_price"], h["current_value"], h["asset_class"], h["style"],
-                  h["sector"], h["expense_ratio"])
+                  h["quantity"], h["last_price"], h["current_value"],
+                  _share(h["current_value"], portfolio_value),
+                  _share(h["current_value"], account_values[h["account_number"]]),
+                  h["asset_class"], h["style"], h["sector"], h["expense_ratio"])
                  for h in holdings]
         _write_table(ws, headers, data, currency_cols=(7, 8))
-        for row in ws.iter_rows(min_row=2, min_col=12, max_col=12):
+        for portfolio_cell, account_cell in ws.iter_rows(min_row=2, min_col=9, max_col=10):
+            portfolio_cell.number_format = PORTFOLIO_SHARE_FMT
+            account_cell.number_format = HOLDING_PCT_FMT
+        for row in ws.iter_rows(min_row=2, min_col=14, max_col=14):
             if isinstance(row[0].value, (int, float)):
                 row[0].number_format = EXPENSE_FMT
-        _autosize(ws, [22, 14, 16, 10, 34, 12, 12, 14, 20, 22, 24, 14])
+        _autosize(ws, [22, 14, 16, 10, 34, 12, 12, 14, 14, 14, 20, 22, 24, 14])
+        ws.freeze_panes = "A2"
+
+        # --- Holdings by Ticker tab (private only): each symbol summed
+        # across every account that holds it, largest first, plus a total.
+        by_symbol = {}
+        for h in holdings:
+            entry = by_symbol.setdefault(h["symbol"], {
+                "description": h["description"], "asset_class": h["asset_class"],
+                "quantity": 0.0, "value": 0.0, "accounts": set(),
+            })
+            entry["quantity"] += h["quantity"] or 0.0
+            entry["value"] += h["current_value"] or 0.0
+            entry["accounts"].add(h["account_number"])
+        ws = wb.create_sheet("Holdings by Ticker")
+        headers = ["Symbol", "Description", "Total Quantity", "Total Value", "% of Portfolio",
+                   "# of Accounts", "Asset Class"]
+        data = [(sym, e["description"], e["quantity"], e["value"], _share(e["value"], portfolio_value),
+                  len(e["accounts"]), e["asset_class"])
+                 for sym, e in sorted(by_symbol.items(), key=lambda kv: kv[1]["value"], reverse=True)]
+        next_row = _write_table(ws, headers, data, currency_cols=(4,))
+        total_row = ("TOTAL", "", None, portfolio_value, 1.0 if portfolio_value else 0.0, None, "")
+        for j, val in enumerate(total_row, start=1):
+            cell = ws.cell(row=next_row, column=j, value=val)
+            cell.font = BOLD_FONT
+            if j == 4:
+                cell.number_format = CURRENCY_FMT
+        for row in ws.iter_rows(min_row=2, max_row=next_row, min_col=5, max_col=5):
+            row[0].number_format = PORTFOLIO_SHARE_FMT
+        _autosize(ws, [10, 40, 16, 16, 14, 14, 24])
         ws.freeze_panes = "A2"
 
     # --- Accounts tab. The Account Number column is dropped in the public
-    # view; the inherited-account decedent birth/death dates + 10-year
+    # view and shows just the last 4 digits in the private one; the inherited-account decedent birth/death dates + 10-year
     # deadline (from scenario.inherited_accounts, matched by account number)
     # are shown in BOTH views when there are any.
     ws = wb.create_sheet("Accounts")
@@ -1080,7 +1147,7 @@ def build_workbook(conn, snapshot_id: int, profile_path=None, scenario_path=None
     data = []
     for a in accounts:
         acct_num = str(a["account_number"])
-        row = ([] if public else [a["account_number"]]) + [
+        row = ([] if public else [_mask_account_number(a["account_number"])]) + [
             a["account_name"], a["owner"] or "", a["account_type"], a["value"],
         ]
         if all_inherited:
@@ -1100,7 +1167,7 @@ def build_workbook(conn, snapshot_id: int, profile_path=None, scenario_path=None
             continue
         kind = "Inherited Roth IRA" if entry.get("type") == "roth" else "Inherited IRA"
         label = f"(inherited {entry.get('type') or ''} -- not in current snapshot)".replace("  ", " ")
-        row = ([] if public else [acct_num or ""]) + [
+        row = ([] if public else [_mask_account_number(acct_num)]) + [
             label, (entry.get("beneficiary") or ""), kind, "",
         ] + _inherited_date_cells(entry)
         data.append(tuple(row))
@@ -1265,7 +1332,7 @@ def build_workbook(conn, snapshot_id: int, profile_path=None, scenario_path=None
         _autosize(ws, _projection_col_widths(has_spouse, len(account_columns or [])))
         next_row = _add_projection_charts(ws, headers, header_row, data, next_row + 2)
         next_row = _write_model_parameters(ws, scenario, blended_rate, next_row + 1, bucket_rates=bucket_rates)
-        next_row = _write_scenario_config(ws, scenario, next_row + 1, public=public)
+        next_row = _write_scenario_config(ws, scenario, next_row + 1, public=public, mask_accounts=True)
 
     # --- Monte Carlo tab (only with report --monte-carlo, and only if the
     # Projection tab's own inputs loaded/projected cleanly -- same scenario
@@ -1284,7 +1351,7 @@ def build_workbook(conn, snapshot_id: int, profile_path=None, scenario_path=None
             mc = None
         if mc is not None:
             _populate_monte_carlo_sheet(wb.create_sheet("Monte Carlo"), mc, mc_blended_rate, mc_scenario,
-                                         seed, public=public, bucket_rates=bucket_rates)
+                                         seed, public=public, bucket_rates=bucket_rates, mask_accounts=True)
 
     # --- Optimizer Search tab (only when the scenario is an *_optimized*.yaml
     # that names its scatter chart file -- see _add_optimizer_search_sheet()).
@@ -1325,7 +1392,7 @@ def build_projection_workbook(rows, profile, blended_rate: float, account_column
 
 
 def _populate_monte_carlo_sheet(ws, mc: dict, blended_rate: float, scenario: dict = None, seed=None,
-                                 public: bool = False, bucket_rates: dict = None):
+                                 public: bool = False, bucket_rates: dict = None, mask_accounts: bool = False):
     """Fills `ws` with the Monte Carlo view: the run's headline verdict, a
     percentile "fan chart" table (10th/50th/90th percentile total balance
     per year), the native Excel fan chart right below it (see
@@ -1369,7 +1436,8 @@ def _populate_monte_carlo_sheet(ws, mc: dict, blended_rate: float, scenario: dic
     next_row = _write_model_parameters(ws, scenario, blended_rate, next_row + 1,
                                         volatility=mc["volatility"], mc=mc, seed=seed, bucket_rates=bucket_rates)
     if scenario:
-        next_row = _write_scenario_config(ws, scenario, next_row + 1, public=public)
+        next_row = _write_scenario_config(ws, scenario, next_row + 1, public=public,
+                                           mask_accounts=mask_accounts)
     return ws
 
 
