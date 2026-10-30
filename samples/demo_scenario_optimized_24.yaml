@@ -1,0 +1,88 @@
+description: Sample Roth conversion scenario for samples/ -- built on test_data/'s
+  synthetic household.
+retirement:
+  retirement_age: 65
+  spouse_retirement_age: 63
+  life_expectancy: 95
+  spouse_life_expectancy: 95
+income:
+  target_spending: 90000
+inflation:
+  general: 2.5
+returns:
+  asset_classes:
+    US Equity:
+      expected_return: 7.5
+      volatility: 18
+    International Equity:
+      expected_return: 7.0
+      volatility: 20
+    US Bonds:
+      expected_return: 4.0
+      volatility: 7
+    Liquidity:
+      expected_return: 2.5
+      volatility: 1
+    Alternatives:
+      expected_return: 5.0
+      volatility: 15
+cash_reserve:
+  years: 0
+social_security:
+  jordan:
+    claim_age: 67
+    monthly_benefit: 2800
+  casey:
+    claim_age: 67
+    monthly_benefit: 2200
+inherited_accounts:
+- account_number: '650678215'
+  type: traditional
+  decedent_birthdate: 1938-02-10
+  decedent_death_date: 2024-06-01
+  beneficiary: jordan
+- account_number: '660789326'
+  type: roth
+  decedent_birthdate: 1938-02-10
+  decedent_death_date: 2024-06-01
+  beneficiary: jordan
+roth_conversions:
+- owner: jordan
+  start_date: 2031-05-01
+  end_date: 2040-12-31
+  constraints:
+    max_marginal_bracket: 24
+    avoid_irmaa_tier: 2
+  annual_amount:
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 20555
+  - 20555
+  - 20555
+  - 20555
+  - 20555
+  scatter_chart: demo_scenario_optimized_24_search.html
+- owner: casey
+  start_date: 2031-10-01
+  end_date: 2042-12-31
+  constraints:
+    max_marginal_bracket: 24
+    avoid_irmaa_tier: 2
+  annual_amount:
+  - 438500
+  - 47961
+  - 34258
+  - 184992
+  - 219250
+  - 0
+  - 0
+  - 219250
+  - 0
+  - 219250
+  - 219250
+  - 0
+advisory_expense:
+  pct_of_portfolio: 0.75

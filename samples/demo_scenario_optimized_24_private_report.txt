@@ -1,0 +1,139 @@
+================================================================
+HOUSEHOLD REBALANCING REPORT
+================================================================
+Snapshot:      #1  (imported 2026-10-30T04:17:00+00:00)
+Source file:   Portfolio_Positions_Aug-15-2026-jordan.csv; Portfolio_Positions_Aug-15-2026-casey.csv; Schwab_Positions_Aug-15-2026-jordan.csv; ETRADE_Positions_Aug-15-2026-casey.csv
+As-of date:    2026-08-15
+Household total value: $2,192,500
+
+----------------------------------------------------------------
+ALLOCATION BY ACCOUNT TYPE
+----------------------------------------------------------------
+  Brokerage                $       738,500     33.7%
+  401(k)                   $       570,000     26.0%
+  IRA                      $       430,000     19.6%
+  Roth IRA                 $       319,000     14.5%
+  Inherited IRA            $        75,000      3.4%
+  Inherited Roth IRA       $        40,000      1.8%
+  HSA                      $        20,000      0.9%
+
+----------------------------------------------------------------
+ALLOCATION BY ACCOUNT  (asset class breakdown within each account)
+----------------------------------------------------------------
+  ACME GLOBAL 401K  (401(k), Owner: Jordan, #...5982)
+      US Equity                          $      310,000     83.8%
+      US Bonds                           $       60,000     16.2%
+      Account Total:                     $      370,000    100.0%
+  GLOBEX INC 401K  (401(k), Owner: Casey, #...3770)
+      US Equity                          $      160,000     80.0%
+      US Bonds                           $       40,000     20.0%
+      Account Total:                     $      200,000    100.0%
+  HSA  (HSA, Owner: Jordan, #...0437)
+      US Equity                          $       18,000     90.0%
+      Money Market                       $        2,000     10.0%
+      Account Total:                     $       20,000    100.0%
+  INDIVIDUAL - TOD  (Brokerage, Owner: Jordan, #...4871)
+      US Equity                          $      180,000     61.0%
+      International Equity               $       60,000     20.3%
+      US Bonds                           $       40,000     13.6%
+      Money Market                       $       15,000      5.1%
+      Account Total:                     $      295,000    100.0%
+  IRA - BDA (INHERITED)  (Inherited IRA, Owner: Jordan, #...8215)
+      US Bonds                           $       70,000     93.3%
+      Money Market                       $        5,000      6.7%
+      Account Total:                     $       75,000    100.0%
+  Individual  (Brokerage, Owner: Jordan, #...1234)
+      US Equity                          $       60,000     63.2%
+      International Equity               $       30,000     31.6%
+      Cash                               $        5,000      5.3%
+      Account Total:                     $       95,000    100.0%
+  JOINT WROS - TOD  (Brokerage, Owner: Joint, #...2659)
+      US Equity                          $      145,000     59.2%
+      International Equity               $       40,000     16.3%
+      US Bonds                           $       35,000     14.3%
+      Gold                               $       15,000      6.1%
+      Money Market                       $       10,000      4.1%
+      Account Total:                     $      245,000    100.0%
+  ROLLOVER IRA  (IRA, Owner: Jordan, #...6093)
+      US Equity                          $      150,000     53.6%
+      International Equity               $       55,000     19.6%
+      US Bonds                           $       45,000     16.1%
+      Gold                               $       20,000      7.1%
+      Money Market                       $       10,000      3.6%
+      Account Total:                     $      280,000    100.0%
+  ROLLOVER IRA  (IRA, Owner: Casey, #...4881)
+      US Equity                          $       90,000     60.0%
+      International Equity               $       35,000     23.3%
+      US Bonds                           $       25,000     16.7%
+      Account Total:                     $      150,000    100.0%
+  ROTH IRA  (Roth IRA, Owner: Jordan, #...7104)
+      US Equity                          $       95,000     76.0%
+      International Equity               $       30,000     24.0%
+      Account Total:                     $      125,000    100.0%
+  ROTH IRA  (Roth IRA, Owner: Casey, #...5992)
+      US Equity                          $       70,000     70.0%
+      International Equity               $       20,000     20.0%
+      Gold                               $       10,000     10.0%
+      Account Total:                     $      100,000    100.0%
+  ROTH IRA - BDA (INHERITED)  (Inherited Roth IRA, Owner: Jordan, #...9326)
+      US Equity                          $       40,000    100.0%
+      Account Total:                     $       40,000    100.0%
+  Roth IRA  (Roth IRA, Owner: Jordan, #...5678)
+      US Bonds                           $       70,000     74.5%
+      US Equity                          $       24,000     25.5%
+      Account Total:                     $       94,000    100.0%
+  X9999  (Brokerage, Owner: Casey, #...9999)
+      US Bonds                           $       78,400     75.7%
+      US Equity                          $       22,500     21.7%
+      Cash                               $        2,600      2.5%
+      Account Total:                     $      103,500    100.0%
+
+----------------------------------------------------------------
+ACTUAL vs. IPS TARGET  (by macro class)
+----------------------------------------------------------------
+  Macro Class                          Actual   Target     Diff     $ to trade  Action
+  Alternatives                           2.1%     5.0%    -2.9% $      -64,625  Underweight -- add
+  Growth                                74.5%    60.0%   +14.5% $     +319,000  Overweight -- trim
+  Income                                21.1%    30.0%    -8.9% $     -194,350  Underweight -- add
+  Liquidity                              2.3%     5.0%    -2.7% $      -60,025  Underweight -- add
+
+----------------------------------------------------------------
+ACTUAL vs. IPS TARGET  (by asset class)
+----------------------------------------------------------------
+  No IPS targets have been set yet. Run:
+    python -m pt.cli targets set "US Equity" 0.45
+  ...for each asset class, then re-run this report.
+  (Actual totals below still reflect your current allocation either way.)
+  Asset Class                          Actual
+  Cash                                   0.3%
+  Gold                                   2.1%
+  International Equity                  12.3%
+  Money Market                           1.9%
+  US Bonds                              21.1%
+  US Equity                             62.2%
+
+----------------------------------------------------------------
+INVESTMENT EXPENSE SUMMARY  (calculated annual cost)
+----------------------------------------------------------------
+  ACME GLOBAL 401K           $      370,000     0.00%   $         0/yr
+  GLOBEX INC 401K            $      200,000     0.00%   $         0/yr
+  HSA                        $       20,000     0.00%   $         0/yr
+  INDIVIDUAL - TOD           $      295,000     0.00%   $         0/yr
+  IRA - BDA (INHERITED)      $       75,000     0.00%   $         0/yr
+  Individual                 $       95,000     0.00%   $         0/yr
+  JOINT WROS - TOD           $      245,000     0.00%   $         0/yr
+  ROLLOVER IRA               $      280,000     0.00%   $         0/yr
+  ROLLOVER IRA               $      150,000     0.00%   $         0/yr
+  ROTH IRA                   $      125,000     0.00%   $         0/yr
+  ROTH IRA                   $      100,000     0.00%   $         0/yr
+  ROTH IRA - BDA (INHERITED) $       40,000     0.00%   $         0/yr
+  Roth IRA                   $       94,000     0.00%   $         0/yr
+  X9999                      $      103,500     0.00%   $         0/yr
+----------------------------------------------------------------
+  HOUSEHOLD TOTAL            $    2,192,500     0.00%   $         0/yr
+
+  $2,192,500 (100.0%) in holdings have no expense ratio on file -- the ratios/costs above understate the true total. Set one with `python -m pt.cli expense-ratio set SYMBOL PCT`, or for a whole managed account's flat fee (added to its holdings' own ratios, not replacing them), `python -m pt.cli accounts set-expense-ratio ACCOUNT_NUMBER PCT`.
+
+================================================================
+Report generated 2026-10-29 23:17
+================================================================

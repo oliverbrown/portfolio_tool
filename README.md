@@ -1,4 +1,4 @@
-# Portfolio Tool (pt) — v1.74
+# Portfolio Tool (pt) — v1.75
 
 A small local tool to import brokerage account exports, classify holdings by
 asset class, and check your household allocation against your IPS targets.
@@ -9,9 +9,11 @@ later (see "Ideas" below).
 
 **New here?** See [`QUICKSTART.md`](QUICKSTART.md) for a five-minute
 walkthrough using the synthetic data in [`test_data/`](test_data/) — nothing
-below touches your real accounts until you're ready.
+below touches your real accounts until you're ready. To see finished
+output first -- public and private reports, an optimized Roth conversion
+schedule, and its search chart -- browse [`samples/`](samples/).
 
-## What v1.74 does
+## What v1.75 does
 
 - Imports one or more brokerage CSV exports -- Fidelity, Schwab, and
   E*TRADE, auto-detected per file (Vanguard not yet -- see "Getting your
@@ -720,6 +722,15 @@ below touches your real accounts until you're ready.
   holds under $10,000 today, instead of the household rate -- how you
   plan to invest converted money. A Roth with $10,000 or more keeps its
   own mix's rate. See "Per-bucket growth" below.
+- **`samples/`**: finished output from `test_data/`'s synthetic household
+  -- public and private reports (Excel and text), an optimized Roth
+  conversion scenario with its projection, and the search's HTML chart
+  and CSV -- plus `samples/generate.sh` to rebuild them. See
+  `samples/README.md`.
+- **The report's Optimizer Search tab links to its chart by a relative
+  path** (relative to the workbook's own folder) instead of an absolute
+  `file://` one, so a shared report no longer shows your home directory
+  and the link keeps working when the two files move together.
 
 ## Setup
 
@@ -1857,7 +1868,7 @@ Each year:
      less this year would produce a better outcome over the rest of the
      projection (lower lifetime tax, or a larger total estate); a true
      multi-year optimizer for that is a bigger, separate undertaking (see
-     "Ideas for v1.75+" below).
+     "Ideas for v1.76+" below).
    - **IRA distributions**, if any are configured in the scenario's
      `ira_distributions` (optional -- see "Retirement scenario" above),
      process right after Roth conversions, sharing the same running
@@ -2158,7 +2169,7 @@ Balance) instead of running through age 100.
   know when that spouse's own contributions stop; everything else in the
   projection uses `household_retirement_year`, the LATER of the two.
 - **Withdrawal order is the household's own single choice**, not a
-  comparison across multiple strategies -- see "Ideas for v1.75+" below for
+  comparison across multiple strategies -- see "Ideas for v1.76+" below for
   what a multi-strategy comparison (e.g. tax-bracket-filling, pro-rata)
   would add.
 
@@ -2642,7 +2653,7 @@ Run the regression suite with `python3 -m unittest discover -s tests -t . -v`
 -- see [tests/README.md](tests/README.md) for what it covers (and
 doesn't).
 
-## Known v1.74 limitations (by design — see roadmap ideas below)
+## Known v1.75 limitations (by design — see roadmap ideas below)
 
 - Single household only; no multi-household support
 - No cost-basis / tax-lot analysis, no tax-loss harvesting logic
@@ -2666,7 +2677,7 @@ doesn't).
   modeled, no survivor spending reduction, and only one withdrawal-order
   strategy (not a multi-strategy comparison)
 
-## Ideas for v1.75+ (not built yet)
+## Ideas for v1.76+ (not built yet)
 
 - CLI command to correct an account's owner after the fact (same pattern as
   `accounts set-type`)

@@ -80,3 +80,9 @@ fidelity_tool_v*.zip
 *.vpwhistuxml
 *.vtg
 *.vpwwildcardcache
+
+# Checked-in sample outputs built from test_data/'s synthetic household
+# (see samples/README.md) -- re-included after the report patterns above,
+# which their names match. Must stay at the end of this file.
+!samples/*_report.txt
+!samples/*_report.xlsx

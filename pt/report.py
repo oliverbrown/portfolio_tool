@@ -1,6 +1,7 @@
 """Produces the two report deliverables: a text rebalancing report and an
 Excel workbook with one tab per view of the data."""
 import math
+import os
 import sys
 from collections import defaultdict
 from datetime import datetime
@@ -719,7 +720,7 @@ def _axis_bounds(values: list):
     return math.floor(lo / step) * step, math.ceil(hi / step) * step, step
 
 
-def _add_optimizer_search_sheet(wb, scenario: dict, scenario_path=None) -> None:
+def _add_optimizer_search_sheet(wb, scenario: dict, scenario_path=None, out_path=None) -> None:
     """Adds an "Optimizer Search" tab if `scenario` (an *_optimized*.yaml
     written by `roth_optimizer optimize --out-scenario ... --save-iterations
     ....html`) names its scatter chart file in a roth_conversions entry's
@@ -734,7 +735,11 @@ def _add_optimizer_search_sheet(wb, scenario: dict, scenario_path=None) -> None:
     schedule as a dot, the optimized schedule and the No conversions/
     Current plan reference points marked, plus each schedule's trajectory
     through any --optimizer-projection-ages the chart was made with --
-    and links to the original file for the interactive (hover) version."""
+    and links to the original file for the interactive (hover) version.
+    With `out_path` (where the workbook will be saved) that link is
+    relative to the workbook's own folder, so it keeps working when both
+    files move together and never spells out the user's home directory in
+    a shared report; without it, an absolute file:// link."""
     ref = _find_scatter_chart_ref(scenario)
     if not ref:
         return
@@ -758,7 +763,11 @@ def _add_optimizer_search_sheet(wb, scenario: dict, scenario_path=None) -> None:
     ws["A1"].font = BOLD_FONT
     link = ws["A2"]
     link.value = "Open the interactive chart (hover for exact numbers)"
-    link.hyperlink = chart_path.as_uri()
+    if out_path is not None:
+        out_dir = Path(out_path).expanduser().resolve().parent
+        link.hyperlink = Path(os.path.relpath(chart_path, out_dir)).as_posix()
+    else:
+        link.hyperlink = chart_path.as_uri()
     link.font = Font(name=FONT_NAME, color="0563C1", underline="single")
     ws["A3"] = ("Each dot is one candidate schedule the search scored: lifetime taxes paid vs. after-tax "
                 "estate value (valued at life expectancy, at the heir tax rate the search assumed).")
@@ -958,7 +967,7 @@ def _projection_col_widths(has_spouse, n_account_columns=0):
 
 def build_workbook(conn, snapshot_id: int, profile_path=None, scenario_path=None, verbose: bool = False,
                     monte_carlo: bool = False, trials: int = 1000, seed: int = None, public: bool = False,
-                    per_bucket_growth: bool = False, views: dict = None):
+                    per_bucket_growth: bool = False, views: dict = None, out_path=None):
     """profile_path/scenario_path default to the standard planning-profile
     and retirement-scenario locations (see pt/planning.py, pt/scenario.py).
     The Projection tab is included only if both load successfully -- most
@@ -981,6 +990,10 @@ def build_workbook(conn, snapshot_id: int, profile_path=None, scenario_path=None
     hypothetical one (hypothetical_accounts + its own top-level `people`),
     the profile is built from that instead of needing a --profile file
     that matches the made-up owners.
+
+    out_path (where the caller will save the workbook) makes the Optimizer
+    Search tab's link to its chart file relative -- see
+    _add_optimizer_search_sheet().
 
     monte_carlo (see `report --monte-carlo`): also run run_monte_carlo()
     from the same profile/scenario and add a "Monte Carlo" tab immediately
@@ -1401,7 +1414,7 @@ def build_workbook(conn, snapshot_id: int, profile_path=None, scenario_path=None
     # Independent of whether the scenario projected above: it only reads the
     # chart file. A missing/unreadable file warns and skips, never fails.
     if scenario is not None:
-        _add_optimizer_search_sheet(wb, scenario, scenario_path)
+        _add_optimizer_search_sheet(wb, scenario, scenario_path, out_path)
 
     return wb
 

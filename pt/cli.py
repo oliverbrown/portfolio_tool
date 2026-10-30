@@ -537,7 +537,8 @@ def cmd_report(args):
     wb = report_mod.build_workbook(conn, snapshot_id, profile_path=args.profile, scenario_path=args.scenario,
                                     verbose=args.verbose, monte_carlo=args.monte_carlo,
                                     trials=args.trials, seed=args.seed, public=args.public,
-                                    per_bucket_growth=args.per_bucket_growth, views=views)
+                                    per_bucket_growth=args.per_bucket_growth, views=views,
+                                    out_path=args.out)
     xlsx_path = Path(args.out)
     xlsx_path.parent.mkdir(parents=True, exist_ok=True)
     wb.save(xlsx_path)

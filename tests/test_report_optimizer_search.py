@@ -80,6 +80,21 @@ class OptimizerSearchTabTests(unittest.TestCase):
                           if isinstance(r[0], int) and r[1] in (100000, 150000, 120000)]
         self.assertEqual(len(candidate_rows), len(_LOG))
 
+    def test_link_is_relative_to_the_workbook_when_its_out_path_is_known(self):
+        """A shared report mustn't spell out the user's home directory, and
+        the link should survive moving the workbook and chart together."""
+        self._write_chart()
+        scenario_path = self._scenario_path(scatter_chart="search.html")
+        with contextlib.redirect_stderr(io.StringIO()):
+            same_dir = report_mod.build_workbook(self.conn, self.snapshot_id, profile_path=h.TEST_PROFILE,
+                                                 scenario_path=scenario_path, public=True,
+                                                 out_path=self.dir / "report.xlsx")
+            sub_dir = report_mod.build_workbook(self.conn, self.snapshot_id, profile_path=h.TEST_PROFILE,
+                                                scenario_path=scenario_path, public=True,
+                                                out_path=self.dir / "reports" / "report.xlsx")
+        self.assertEqual(same_dir["Optimizer Search"]["A2"].hyperlink.target, "search.html")
+        self.assertEqual(sub_dir["Optimizer Search"]["A2"].hyperlink.target, "../search.html")
+
     def test_chart_area_plot_area_and_legend_match_the_requested_dimensions(self):
         """Locks in the exact geometry a person asked for by eye (chart
         area, inner plot area/margins, legend box) so a future refactor of
