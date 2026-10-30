@@ -445,6 +445,7 @@ def _write_model_parameters(ws, scenario: dict, blended_rate: float, start_row: 
                       "blended rate instead of the household summary above):", False))
         for key in sorted(bucket_rates, key=projection_mod.bucket_label):
             lines.append((f"    {projection_mod.bucket_label(key)}: {bucket_rates[key] * 100:.2f}%", False))
+        lines.append((f"    {projection_mod.SMALL_BUCKET_NOTE}", False))
     if volatility is not None:
         lines.append((f"Blended volatility (weighted-average annual stdev): {volatility:.1f} pts", False))
     if mc is not None:
@@ -1353,10 +1354,7 @@ def build_workbook(conn, snapshot_id: int, profile_path=None, scenario_path=None
         bucket_allocations = bucket_rates = None
         if per_bucket_growth:
             bucket_allocations = projection_mod.bucket_allocation_rows(proj_class_rows, inherited_schedules, profile)
-            bucket_rates = {
-                key: projection_mod.compute_blended_growth_rate(bucket_rows, bucket_total, scenario)
-                for key, (bucket_rows, bucket_total) in bucket_allocations.items()
-            }
+            bucket_rates = projection_mod.bucket_growth_rates(bucket_allocations, scenario)
         projection_rows = projection_mod.project(profile, scenario, proj_account_rows, blended_rate=blended_rate,
                                                    account_columns=account_columns, bucket_rates=bucket_rates)
         projection_ctx = (profile, scenario, proj_account_rows, blended_rate, bucket_allocations,

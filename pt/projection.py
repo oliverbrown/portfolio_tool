@@ -999,7 +999,8 @@ def build_correlated_return_sampler(allocation_rows: list, total: float, scenari
 
 
 def build_bucket_correlated_return_sampler(household_allocation_rows: list, household_total: float,
-                                            bucket_allocations: dict, scenario: dict, rng):
+                                            bucket_allocations: dict, scenario: dict, rng,
+                                            target_means: dict = None):
     """The per-tax-bucket counterpart to build_correlated_return_sampler():
     returns a zero-argument function -- call it once per simulated year --
     that draws ONE shared per-asset-class "economy" for the year (see
@@ -1021,13 +1022,27 @@ def build_bucket_correlated_return_sampler(household_allocation_rows: list, hous
     for bucket_key, (rows, total) in bucket_allocations.items():
         held = [r for r in rows if r["value"] > 0]
         bucket_weights[bucket_key] = {r["asset_class"]: r["value"] / total for r in held} if total > 0 else {}
+    # target_means ({bucket_key: mean rate}, e.g. a roth_growth_rate -- see
+    # bucket_growth_rates()): such a bucket takes the household-mix draw,
+    # shifted so it averages its target instead -- still correlated with
+    # every other bucket, just centered somewhere else.
+    household_weights = ({r["asset_class"]: r["value"] / household_total
+                          for r in household_allocation_rows if r["value"] > 0}
+                         if household_total > 0 else {})
+    household_mean = compute_blended_growth_rate(household_allocation_rows, household_total, scenario)
+    target_means = target_means or {}
 
     def draw() -> dict:
         class_returns = draw_class_returns()
-        return {
+        realized = {
             bucket_key: sum(w * class_returns[c] for c, w in weight_map.items())
             for bucket_key, weight_map in bucket_weights.items()
         }
+        if target_means:
+            household_draw = sum(w * class_returns[c] for c, w in household_weights.items())
+            for bucket_key, mean in target_means.items():
+                realized[bucket_key] = household_draw + (mean - household_mean)
+        return realized
 
     return draw
 
@@ -1450,6 +1465,7 @@ def build_roth_conversions(scenario: dict, profile: dict) -> list:
     people = _people(profile)
     valid_rates = {r for _, r in tax_mod.ORDINARY_BRACKETS_2024_MFJ}
     policy_reserve_years = scenario.get("cash_reserve", {}).get("years")
+    roth_growth_targets(scenario)  # validates roth_growth_rate; used by --per-bucket-growth only
     conversions = []
     for entry in scenario.get("roth_conversions", []):
         owner = (entry.get("owner") or "").lower()
@@ -2235,6 +2251,18 @@ def _bucket_key_for_account(row: dict, people: dict, inherited_numbers: set) -> 
     return "taxable"
 
 
+# A tax bucket holding less than this today gets no growth rate of its own
+# under --per-bucket-growth -- bucket_allocation_rows() leaves it out, so it
+# grows at the household-wide rate/draw. Its current mix says little about
+# how money that later flows INTO it (a Roth conversion into a near-empty
+# Roth, say) will be invested: a $4 Roth sitting in a money market fund
+# would otherwise model every converted dollar at the money-market rate.
+MIN_BUCKET_VALUE_FOR_OWN_RATE = 10_000.0
+SMALL_BUCKET_NOTE = (f"(a bucket holding under ${MIN_BUCKET_VALUE_FOR_OWN_RATE:,.0f} today grows at the "
+                     "household rate and isn't listed -- except a Roth with a roth_conversions "
+                     "roth_growth_rate, listed above at that rate)")
+
+
 def bucket_allocation_rows(class_rows: list, inherited_schedules: list, profile: dict) -> dict:
     """Groups a per-account, per-asset-class breakdown (allocation.
     allocation_by_account()'s shape for a real household, or
@@ -2255,7 +2283,9 @@ def bucket_allocation_rows(class_rows: list, inherited_schedules: list, profile:
     build_correlated_return_sampler() all work on a bucket's rows
     completely unchanged. A bucket with no matching accounts (e.g. a
     Traditional pool a person hasn't opened) simply isn't a key here --
-    callers fall back to the household-wide blended rate for those."""
+    callers fall back to the household-wide blended rate for those. Neither
+    is a bucket holding less than MIN_BUCKET_VALUE_FOR_OWN_RATE (see that
+    constant for why)."""
     people = _people(profile)
     inherited_numbers = {s["account_number"] for s in inherited_schedules}
     class_totals_by_bucket = {}
@@ -2266,12 +2296,66 @@ def bucket_allocation_rows(class_rows: list, inherited_schedules: list, profile:
     result = {}
     for key, class_totals in class_totals_by_bucket.items():
         total = sum(class_totals.values())
+        if total < MIN_BUCKET_VALUE_FOR_OWN_RATE:
+            continue
         allocation_rows = [
             {"asset_class": ac, "value": v, "pct": (v / total if total else 0.0)}
             for ac, v in class_totals.items()
         ]
         result[key] = (allocation_rows, total)
     return result
+
+
+def roth_growth_targets(scenario: dict) -> dict:
+    """{"roth:<owner>": rate (a fraction)} from each roth_conversions
+    entry's optional roth_growth_rate (a percentage, e.g. 7.5) -- the rate
+    an owner's Roth bucket grows at under --per-bucket-growth when that
+    Roth holds too little today to have a rate of its own (see
+    MIN_BUCKET_VALUE_FOR_OWN_RATE and bucket_growth_rates()). Raises
+    ProjectionError for a non-number, a rate outside 0-25%, or two entries
+    for the same owner that disagree."""
+    targets = {}
+    for entry in scenario.get("roth_conversions") or []:
+        pct = entry.get("roth_growth_rate")
+        if pct is None:
+            continue
+        owner = (entry.get("owner") or "").lower()
+        if isinstance(pct, bool) or not isinstance(pct, (int, float)) or not (0 <= pct <= 25):
+            raise ProjectionError(
+                f"roth_conversions entry for '{owner}' has roth_growth_rate={pct!r} -- give a "
+                "percentage between 0 and 25 (e.g. 7.5 for 7.5% a year)."
+            )
+        key = f"roth:{owner}"
+        if key in targets and targets[key] != pct / 100:
+            raise ProjectionError(
+                f"roth_conversions has more than one entry for '{owner}' with different "
+                "roth_growth_rate values -- give it once, or the same value on each."
+            )
+        targets[key] = pct / 100
+    return targets
+
+
+def _applicable_roth_targets(scenario: dict, bucket_allocations: dict) -> dict:
+    """roth_growth_targets() for the Roth buckets with no rate of their own
+    -- under MIN_BUCKET_VALUE_FOR_OWN_RATE today, or no Roth account yet.
+    A Roth big enough to have its own mix keeps growing at that mix."""
+    return {key: rate for key, rate in roth_growth_targets(scenario).items()
+            if key not in bucket_allocations}
+
+
+def bucket_growth_rates(bucket_allocations: dict, scenario: dict) -> dict:
+    """{bucket_key: growth rate} for --per-bucket-growth: each bucket in
+    bucket_allocations (see bucket_allocation_rows()) at its own blended
+    rate, plus any roth_conversions[].roth_growth_rate target for an
+    owner whose Roth has no rate of its own (see
+    _applicable_roth_targets()). Any bucket not in the result grows at
+    the household-wide rate."""
+    rates = {
+        key: compute_blended_growth_rate(rows, total, scenario)
+        for key, (rows, total) in bucket_allocations.items()
+    }
+    rates.update(_applicable_roth_targets(scenario, bucket_allocations))
+    return rates
 
 
 def bucket_label(bucket_key: str) -> str:
@@ -3299,11 +3383,13 @@ def run_monte_carlo(profile: dict, scenario: dict, account_rows: list, blended_r
     final_cumulative_taxes = []
     balances_by_year = {}
 
+    roth_targets = _applicable_roth_targets(scenario, bucket_allocations) if bucket_allocations is not None else None
     for i in range(trials):
         rng = random.Random(seed + i) if seed is not None else random.Random()
         if bucket_allocations is not None:
             bucket_rate_fn = build_bucket_correlated_return_sampler(
-                allocation_rows, total, bucket_allocations, scenario, rng
+                allocation_rows, total, bucket_allocations, scenario, rng,
+                target_means=roth_targets,
             )
             rows = project(profile, scenario, account_rows, blended_rate, start_year=start_year,
                             bucket_rate_fn=bucket_rate_fn)
@@ -3366,6 +3452,7 @@ def format_table(rows: list, profile: dict, blended_rate: float, account_columns
                       "blended rate instead of the household summary above):")
         for key in sorted(bucket_rates, key=bucket_label):
             lines.append(f"    {bucket_label(key):<28} {bucket_rates[key]*100:>6.2f}%")
+        lines.append(f"    {SMALL_BUCKET_NOTE}")
     lines.append("Federal tax only (no state), MFJ, standard deduction. See pt/projection.py for the full")
     lines.append("list of simplifications (bucketed balances, RMDs, inherited 10-year rules, Social Security).")
     if any(r["pre_retirement_income"] for r in rows):
@@ -3483,6 +3570,7 @@ def format_monte_carlo_table(mc: dict, blended_rate: float, bucket_rates: dict =
                       "correlated return, from its own asset mix, instead of the household summary above):")
         for key in sorted(bucket_rates, key=bucket_label):
             lines.append(f"    {bucket_label(key):<28} {bucket_rates[key]*100:>6.2f}%")
+        lines.append(f"    {SMALL_BUCKET_NOTE}")
     lines.append("Each trial draws an INDEPENDENT annual return for every year from a "
                  "Normal(mean, stdev) distribution, instead of one fixed rate held constant the "
                  "whole projection -- see pt/projection.py's \"Documented simplifications\" for "

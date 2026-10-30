@@ -610,10 +610,7 @@ def cmd_project(args):
         bucket_rates = None
         if args.per_bucket_growth:
             bucket_allocations = _bucket_allocations_for(args, scenario, profile, inherited_schedules)
-            bucket_rates = {
-                key: projection_mod.compute_blended_growth_rate(bucket_rows, bucket_total, scenario)
-                for key, (bucket_rows, bucket_total) in bucket_allocations.items()
-            }
+            bucket_rates = projection_mod.bucket_growth_rates(bucket_allocations, scenario)
         rows = projection_mod.project(profile, scenario, account_rows, blended_rate=blended_rate,
                                        account_columns=account_columns, bucket_rates=bucket_rates)
     except projection_mod.ProjectionError as e:
@@ -688,10 +685,7 @@ def cmd_monte_carlo(args):
         if args.per_bucket_growth:
             inherited_schedules = projection_mod.build_inherited_schedules(scenario, profile)
             bucket_allocations = _bucket_allocations_for(args, scenario, profile, inherited_schedules)
-            bucket_rates = {
-                key: projection_mod.compute_blended_growth_rate(bucket_rows, bucket_total, scenario)
-                for key, (bucket_rows, bucket_total) in bucket_allocations.items()
-            }
+            bucket_rates = projection_mod.bucket_growth_rates(bucket_allocations, scenario)
         mc = projection_mod.run_monte_carlo(profile, scenario, account_rows, blended_rate, volatility,
                                              allocation_rows, total, trials=args.trials, seed=args.seed,
                                              bucket_allocations=bucket_allocations)

@@ -338,16 +338,14 @@ def cmd_optimize(args):
         if args.per_bucket_growth:
             inherited_schedules = projection_mod.build_inherited_schedules(scenario, profile)
             bucket_allocations = _bucket_allocations_for(args, scenario, profile, inherited_schedules)
-            bucket_rates = {
-                key: projection_mod.compute_blended_growth_rate(bucket_rows, bucket_total, scenario)
-                for key, (bucket_rows, bucket_total) in bucket_allocations.items()
-            }
+            bucket_rates = projection_mod.bucket_growth_rates(bucket_allocations, scenario)
         print(f"Searching (restarts={args.restarts}, seed={args.seed}, heir tax rate={args.heir_tax_rate:g}%"
               + (", per-bucket growth" if args.per_bucket_growth else "") + ") ...")
         if bucket_rates:
             print("Per-bucket growth rates (each tax bucket grows at its own blended rate during the search):")
             for key in sorted(bucket_rates, key=projection_mod.bucket_label):
                 print(f"  {projection_mod.bucket_label(key)}: {bucket_rates[key] * 100:.2f}%")
+            print(f"  {projection_mod.SMALL_BUCKET_NOTE}")
         t0 = time.time()
         iteration_log = [] if args.save_iterations else None
         result = optimizer_mod.optimize(
@@ -448,10 +446,7 @@ def cmd_sweep(args):
         if args.per_bucket_growth:
             inherited_schedules = projection_mod.build_inherited_schedules(scenario, profile)
             bucket_allocations = _bucket_allocations_for(args, scenario, profile, inherited_schedules)
-            bucket_rates = {
-                key: projection_mod.compute_blended_growth_rate(bucket_rows, bucket_total, scenario)
-                for key, (bucket_rows, bucket_total) in bucket_allocations.items()
-            }
+            bucket_rates = projection_mod.bucket_growth_rates(bucket_allocations, scenario)
     except projection_mod.ProjectionError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
@@ -463,6 +458,7 @@ def cmd_sweep(args):
         print("Per-bucket growth rates (each tax bucket grows at its own blended rate during the search):")
         for key in sorted(bucket_rates, key=projection_mod.bucket_label):
             print(f"  {projection_mod.bucket_label(key)}: {bucket_rates[key] * 100:.2f}%")
+        print(f"  {projection_mod.SMALL_BUCKET_NOTE}")
     print()
 
     rows_out = []
@@ -559,10 +555,7 @@ def cmd_priority(args):
         if args.per_bucket_growth:
             inherited_schedules = projection_mod.build_inherited_schedules(scenario, profile)
             bucket_allocations = _bucket_allocations_for(args, scenario, profile, inherited_schedules)
-            bucket_rates = {
-                key: projection_mod.compute_blended_growth_rate(bucket_rows, bucket_total, scenario)
-                for key, (bucket_rows, bucket_total) in bucket_allocations.items()
-            }
+            bucket_rates = projection_mod.bucket_growth_rates(bucket_allocations, scenario)
     except projection_mod.ProjectionError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
@@ -574,6 +567,7 @@ def cmd_priority(args):
         print("Per-bucket growth rates (each tax bucket grows at its own blended rate during the search):")
         for key in sorted(bucket_rates, key=projection_mod.bucket_label):
             print(f"  {projection_mod.bucket_label(key)}: {bucket_rates[key] * 100:.2f}%")
+        print(f"  {projection_mod.SMALL_BUCKET_NOTE}")
     print()
 
     values = {}
@@ -650,10 +644,7 @@ def cmd_claim_age(args):
         if args.per_bucket_growth:
             inherited_schedules = projection_mod.build_inherited_schedules(scenario, profile)
             bucket_allocations = _bucket_allocations_for(args, scenario, profile, inherited_schedules)
-            bucket_rates = {
-                key: projection_mod.compute_blended_growth_rate(bucket_rows, bucket_total, scenario)
-                for key, (bucket_rows, bucket_total) in bucket_allocations.items()
-            }
+            bucket_rates = projection_mod.bucket_growth_rates(bucket_allocations, scenario)
         t0 = time.time()
         result = optimizer_mod.search_claim_ages(
             profile, scenario, account_rows, blended_rate, heir_tax_rate,

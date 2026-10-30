@@ -1,4 +1,4 @@
-# Portfolio Tool (pt) — v1.72
+# Portfolio Tool (pt) — v1.74
 
 A small local tool to import brokerage account exports, classify holdings by
 asset class, and check your household allocation against your IPS targets.
@@ -11,7 +11,7 @@ later (see "Ideas" below).
 walkthrough using the synthetic data in [`test_data/`](test_data/) — nothing
 below touches your real accounts until you're ready.
 
-## What v1.72 does
+## What v1.74 does
 
 - Imports one or more brokerage CSV exports -- Fidelity, Schwab, and
   E*TRADE, auto-detected per file (Vanguard not yet -- see "Getting your
@@ -707,6 +707,19 @@ below touches your real accounts until you're ready.
   real imported accounts instead. No imported snapshot is needed, and a
   malformed `hypothetical_accounts` section is now an error rather than a
   silent fallback. See "Hypothetical accounts" below.
+- **Bug fix: `--per-bucket-growth` no longer gives a nearly-empty bucket
+  its own rate.** A bucket holding under $10,000 today (e.g. a Roth IRA
+  with a few dollars in a money market fund) now grows at the household
+  rate instead of its current mix's. Before, every dollar converted into
+  such a Roth was modeled at the money-market rate, so
+  `scripts/run_optimizer.sh`/`run_priority.sh` (per-bucket growth on by
+  default) could find that no Roth conversion at all was best. See
+  "Per-bucket growth" below.
+- **`roth_conversions[].roth_growth_rate`** (optional, a percentage):
+  the rate that owner's Roth grows at under `--per-bucket-growth` when it
+  holds under $10,000 today, instead of the household rate -- how you
+  plan to invest converted money. A Roth with $10,000 or more keeps its
+  own mix's rate. See "Per-bucket growth" below.
 
 ## Setup
 
@@ -1344,6 +1357,7 @@ roth_conversions:
   - owner: john
     start_date: 2029-01-01
     end_date: 2039-12-31
+    roth_growth_rate: 7.5                # optional -- see "Per-bucket growth" below
     constraints:
       max_marginal_bracket: 24           # or "24%" -- must match a real bracket rate
       avoid_irmaa_tier: 1                # 0 (standard) - 5 (top surcharge); avoid_irmaa: true also
@@ -1615,9 +1629,44 @@ A bucket with no accounts of its own (e.g. a Traditional pool nobody has
 opened yet) simply isn't part of the breakdown -- and a bucket that
 starts at $0 with no defined mix (a hypothetical future inheritance, see
 "Hypothetical accounts" below) falls back to the household rate/draw
-until it has one. `roth_optimizer`/`scenario_engine` are unaffected --
-they only ever call `project()` with a single blended_rate, never this
-flag, so their search results don't change.
+until it has one.
+
+**A bucket holding under $10,000 today also grows at the household
+rate/draw** (and isn't listed in the breakdown -- a note says so). Its
+current mix says little about how money that later flows into it will
+be invested: a Roth IRA holding $4 in a money market fund would
+otherwise model every dollar later converted into it at the money-market
+rate, making any Roth conversion look like a loss to `roth_optimizer`.
+The threshold is `MIN_BUCKET_VALUE_FOR_OWN_RATE` in `pt/projection.py`.
+
+To say how converted money WILL be invested, give that owner's
+`roth_conversions` entry a `roth_growth_rate` (a percentage, 0-25):
+
+```yaml
+roth_conversions:
+  - owner: john
+    start_date: 2029-01-01
+    end_date: 2039-12-31
+    roth_growth_rate: 7.5      # john's Roth grows at 7.5%/yr under --per-bucket-growth
+    constraints:
+      max_marginal_bracket: 24
+```
+
+It applies only under `--per-bucket-growth`, and only while that Roth
+holds under $10,000 today (or doesn't exist yet) -- a Roth big enough to
+have its own mix keeps growing at that mix, and plain (non-per-bucket)
+runs keep one household rate for everything. The Roth then shows up in
+the per-bucket breakdown at that rate. In Monte Carlo it takes the
+household-mix draw shifted to average the target, so it stays correlated
+with every other bucket. Give it once per owner (or the same value on
+each of that owner's entries). Since the optimizer's verdict depends
+heavily on this number -- a Roth assumed to outgrow the Traditional
+accounts it's converted from makes conversions look much better -- pick
+a rate that matches how you'd actually invest the money.
+
+`roth_optimizer optimize`/`sweep`/`priority` take the same
+`--per-bucket-growth` flag (on by default in `scripts/run_optimizer.sh`
+and `scripts/run_priority.sh`) -- see `roth_optimizer/README.md`.
 
 Every `project` run also prints the raw scenario configuration itself
 (the loaded scenario dict, dumped back out as YAML -- the same format
@@ -1808,7 +1857,7 @@ Each year:
      less this year would produce a better outcome over the rest of the
      projection (lower lifetime tax, or a larger total estate); a true
      multi-year optimizer for that is a bigger, separate undertaking (see
-     "Ideas for v1.73+" below).
+     "Ideas for v1.75+" below).
    - **IRA distributions**, if any are configured in the scenario's
      `ira_distributions` (optional -- see "Retirement scenario" above),
      process right after Roth conversions, sharing the same running
@@ -2109,7 +2158,7 @@ Balance) instead of running through age 100.
   know when that spouse's own contributions stop; everything else in the
   projection uses `household_retirement_year`, the LATER of the two.
 - **Withdrawal order is the household's own single choice**, not a
-  comparison across multiple strategies -- see "Ideas for v1.73+" below for
+  comparison across multiple strategies -- see "Ideas for v1.75+" below for
   what a multi-strategy comparison (e.g. tax-bracket-filling, pro-rata)
   would add.
 
@@ -2593,7 +2642,7 @@ Run the regression suite with `python3 -m unittest discover -s tests -t . -v`
 -- see [tests/README.md](tests/README.md) for what it covers (and
 doesn't).
 
-## Known v1.72 limitations (by design — see roadmap ideas below)
+## Known v1.74 limitations (by design — see roadmap ideas below)
 
 - Single household only; no multi-household support
 - No cost-basis / tax-lot analysis, no tax-loss harvesting logic
@@ -2617,7 +2666,7 @@ doesn't).
   modeled, no survivor spending reduction, and only one withdrawal-order
   strategy (not a multi-strategy comparison)
 
-## Ideas for v1.73+ (not built yet)
+## Ideas for v1.75+ (not built yet)
 
 - CLI command to correct an account's owner after the fact (same pattern as
   `accounts set-type`)

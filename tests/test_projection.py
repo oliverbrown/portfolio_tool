@@ -390,6 +390,94 @@ class PerBucketGrowthTests(unittest.TestCase):
         self.assertEqual(total, 500000)
         self.assertEqual(rows, [{"asset_class": "US Equity", "value": 500000.0, "pct": 1.0}])
 
+    def test_nearly_empty_bucket_grows_at_the_household_rate(self):
+        """A $5 Roth parked in a 3% bond fund says nothing about how money
+        converted into it later will be invested, so it gets no rate of its
+        own (see MIN_BUCKET_VALUE_FOR_OWN_RATE) and grows at the household
+        blend -- otherwise every converted dollar would be modeled at 3%."""
+        scenario = self._hypothetical_scenario(retirement_age=95, target_spending=0)
+        scenario["hypothetical_accounts"].append(
+            {"account_number": "roth1", "account_type": "Roth IRA", "owner": "alex", "value": 5,
+             "asset_classes": {"US Bonds": 100}})
+        profile = {"people": scenario["people"]}
+        account_rows, allocation_rows, total = proj.build_hypothetical_accounts(scenario, profile)
+        class_rows = proj.build_hypothetical_account_class_rows(scenario, profile)
+        bucket_allocs = proj.bucket_allocation_rows(class_rows, proj.build_inherited_schedules(scenario, profile),
+                                                    profile)
+        self.assertEqual(set(bucket_allocs), {"taxable", "traditional:alex:IRA"})
+        bucket_rates = {
+            key: proj.compute_blended_growth_rate(rows, tot, scenario) for key, (rows, tot) in bucket_allocs.items()
+        }
+        household_rate = proj.compute_blended_growth_rate(allocation_rows, total, scenario)
+        rows = proj.project(profile, scenario, account_rows, household_rate, bucket_rates=bucket_rates)
+        self.assertAlmostEqual(rows[1]["roth_balance"] / rows[0]["roth_balance"] - 1, household_rate, places=6)
+
+    def _scenario_with_roth(self, roth_value, roth_growth_rate=None):
+        import datetime
+        scenario = self._hypothetical_scenario(retirement_age=95, target_spending=0)
+        scenario["hypothetical_accounts"].append(
+            {"account_number": "roth1", "account_type": "Roth IRA", "owner": "alex", "value": roth_value,
+             "asset_classes": {"US Bonds": 100}})
+        entry = {"owner": "alex", "start_date": datetime.date(2080, 1, 1),
+                 "end_date": datetime.date(2081, 12, 31), "annual_amount": 0}
+        if roth_growth_rate is not None:
+            entry["roth_growth_rate"] = roth_growth_rate
+        scenario["roth_conversions"] = [entry]
+        return scenario
+
+    def _per_bucket(self, scenario):
+        profile = {"people": scenario["people"]}
+        account_rows, allocation_rows, total = proj.build_hypothetical_accounts(scenario, profile)
+        class_rows = proj.build_hypothetical_account_class_rows(scenario, profile)
+        bucket_allocs = proj.bucket_allocation_rows(class_rows, proj.build_inherited_schedules(scenario, profile),
+                                                    profile)
+        return profile, account_rows, allocation_rows, total, bucket_allocs
+
+    def test_roth_growth_rate_sets_a_nearly_empty_roths_rate(self):
+        """roth_conversions[].roth_growth_rate replaces the household-rate
+        fallback for a Roth under MIN_BUCKET_VALUE_FOR_OWN_RATE."""
+        scenario = self._scenario_with_roth(5, roth_growth_rate=9)
+        profile, account_rows, allocation_rows, total, bucket_allocs = self._per_bucket(scenario)
+        bucket_rates = proj.bucket_growth_rates(bucket_allocs, scenario)
+        self.assertAlmostEqual(bucket_rates["roth:alex"], 0.09)
+        household_rate = proj.compute_blended_growth_rate(allocation_rows, total, scenario)
+        rows = proj.project(profile, scenario, account_rows, household_rate, bucket_rates=bucket_rates)
+        self.assertAlmostEqual(rows[1]["roth_balance"] / rows[0]["roth_balance"] - 1, 0.09, places=6)
+
+    def test_roth_growth_rate_is_ignored_for_a_roth_with_its_own_mix(self):
+        """A Roth holding $10,000 or more keeps its own mix's rate (100%
+        US Bonds, 3%) even with a roth_growth_rate set."""
+        scenario = self._scenario_with_roth(50000, roth_growth_rate=9)
+        _, _, _, _, bucket_allocs = self._per_bucket(scenario)
+        self.assertAlmostEqual(proj.bucket_growth_rates(bucket_allocs, scenario)["roth:alex"], 0.03)
+
+    def test_roth_growth_rate_validation(self):
+        for bad in (30, -1, "7%", True):
+            with self.assertRaises(proj.ProjectionError):
+                proj.roth_growth_targets({"roth_conversions": [{"owner": "alex", "roth_growth_rate": bad}]})
+        with self.assertRaises(proj.ProjectionError):
+            proj.roth_growth_targets({"roth_conversions": [{"owner": "alex", "roth_growth_rate": 7},
+                                                           {"owner": "Alex", "roth_growth_rate": 8}]})
+        # A bad value fails even without --per-bucket-growth.
+        scenario = self._scenario_with_roth(5, roth_growth_rate=40)
+        with self.assertRaises(proj.ProjectionError):
+            proj.build_roth_conversions(scenario, {"people": scenario["people"]})
+
+    def test_monte_carlo_roth_target_draw_is_the_household_draw_shifted(self):
+        """In Monte Carlo the targeted Roth takes the household-mix draw,
+        shifted to average its target -- still perfectly in step with the
+        rest of the economy each year, just centered at the target."""
+        import random
+        scenario = self._scenario_with_roth(5, roth_growth_rate=9)
+        _, _, allocation_rows, total, bucket_allocs = self._per_bucket(scenario)
+        household_mean = proj.compute_blended_growth_rate(allocation_rows, total, scenario)
+        draw = proj.build_bucket_correlated_return_sampler(
+            allocation_rows, total, bucket_allocs, scenario, random.Random(1),
+            target_means={"roth:alex": 0.09})
+        household_draw = proj.build_correlated_return_sampler(allocation_rows, total, scenario, random.Random(1))
+        for _ in range(5):
+            self.assertAlmostEqual(draw()["roth:alex"] - household_draw(), 0.09 - household_mean, places=9)
+
     def test_bucket_label_is_readable(self):
         self.assertEqual(proj.bucket_label("taxable"), "Taxable")
         self.assertEqual(proj.bucket_label("roth:alex"), "Roth (Alex)")

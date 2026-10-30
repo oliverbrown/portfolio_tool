@@ -110,6 +110,10 @@ Shape (see README.md "Retirement scenario" for the full example):
         per-year schedule instead of a single flat amount) to hand
         project() its result, though nothing stops a household from
         writing one by hand. An entry may also carry an optional
+        roth_growth_rate (a percentage, 0-25) -- the rate the owner's
+        Roth grows at under --per-bucket-growth while it holds too
+        little to have a rate of its own (see pt/projection.py's
+        roth_growth_targets()) -- and an optional
         scatter_chart (a path, relative to this scenario file's own
         directory, to the HTML chart `roth_optimizer optimize
         --save-iterations` wrote) -- ignored by project(); `pt.cli

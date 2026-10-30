@@ -265,7 +265,15 @@ itself: every `project()` call `optimize()` makes (the search's own
 evaluations, `zero_conversions_value`, `original_value`, and the final
 `actual_schedule`) uses the same bucket rates, so "optimal" is judged
 against a consistent growth assumption throughout, not just shown
-afterward in a follow-up report. Prints the per-bucket breakdown before
+afterward in a follow-up report. A bucket holding under $10,000 today
+(e.g. a nearly-empty Roth IRA a conversion would fill) grows at the
+household rate instead of its own, so its few dollars of current
+holdings don't decide how every converted dollar is modeled to grow --
+or, for a Roth, at that owner's `roth_conversions[].roth_growth_rate`
+if set (see the top-level README's "Per-bucket growth"). The search's
+answer is sensitive to that rate: the more a Roth is assumed to outgrow
+the Traditional accounts it's converted from, the more converting pays.
+Prints the per-bucket breakdown before
 searching, same as `--out`'s projection would show.
 
 `--save-iterations PATH` (optional, repeatable) saves every candidate
