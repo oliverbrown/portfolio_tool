@@ -51,6 +51,11 @@ itself as the top-level directory rather than a subpackage of the repo.
   seeded reproducibility, and a direct statistical check that the
   correlated per-asset-class draw actually produces a tighter spread at
   lower correlation -- not just that it runs).
+- **`test_ips.py`** -- `pt/ips.py`'s target consistency checks (macro
+  targets summing to 100%, each macro's subclass targets summing to its
+  own target, subclass-only targets summing to 100%), the macro ->
+  subclass tree `targets show` prints, and that the by-asset-class
+  comparison leaves out subclasses of a macro with no subclass targets.
 - **`test_roth_optimizer.py`** -- the search against a small self-contained
   hypothetical-account scenario (no database needed): never scores below
   the no-conversions baseline, respects `max_conversion_per_year`, and is

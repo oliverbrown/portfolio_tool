@@ -1,4 +1,4 @@
-# Portfolio Tool (pt) — v1.67
+# Portfolio Tool (pt) — v1.71
 
 A small local tool to import brokerage account exports, classify holdings by
 asset class, and check your household allocation against your IPS targets.
@@ -11,7 +11,7 @@ later (see "Ideas" below).
 walkthrough using the synthetic data in [`test_data/`](test_data/) — nothing
 below touches your real accounts until you're ready.
 
-## What v1.67 does
+## What v1.71 does
 
 - Imports one or more brokerage CSV exports -- Fidelity, Schwab, and
   E*TRADE, auto-detected per file (Vanguard not yet -- see "Getting your
@@ -679,6 +679,24 @@ below touches your real accounts until you're ready.
   unreadable chart file only prints a warning -- the report never fails
   over it. See `roth_optimizer/README.md`'s "Including the chart in
   `pt.cli report`".
+- **`report --private` shows only the last 4 digits of account
+  numbers** (`...1234`): the Accounts tab's Account Number column and the
+  Projection/Monte Carlo scenario dump no longer show full numbers. The
+  public view still drops them entirely. See "Public vs. private report"
+  below.
+- **`targets show` prints a macro -> subclass tree**: each macro class
+  with its subclass targets and their subtotal, plus warnings when the
+  macro targets don't sum to 100% or a macro's subclass targets don't sum
+  to its own target (`targets set`/`clear` print the same warnings). The
+  by-asset-class IPS comparison no longer treats the subclasses of a macro
+  with no subclass targets as 0% targets. See "Asset class hierarchy"
+  below.
+- **Holdings tab gains "% of Portfolio" and "% of Account" columns**
+  (between Current Value and Asset Class), and a new **"Holdings by
+  Ticker"** tab right after it sums each symbol across every account that
+  holds it -- total quantity, total value, % of portfolio, number of
+  accounts, asset class -- largest first, with a TOTAL row. `--private`
+  only, like Holdings.
 
 ## Setup
 
@@ -775,15 +793,16 @@ individual accounts or is internal-planning detail:
 
 | | public (default) | `--private` |
 |---|---|---|
-| Account Number column (Accounts tab) | — | shown |
-| Holdings tab | — | shown |
+| Account Number column (Accounts tab) | — | last 4 digits (`...1234`) |
+| Holdings tab (incl. % of Portfolio / % of Account) | — | shown |
+| Holdings by Ticker tab | — | shown |
 | Investment Expenses tab | — | shown |
 | IPS Comparison + IPS Comparison (Macro) tabs | — | shown |
 | IPS by Account tab | — | shown |
 | Unclassified tab | — | shown |
 | Summary tab's two IPS-target tables | — | shown |
 | text report: IPS-target / by-account IPS / unclassified / expense sections, `#...1234` suffixes | — | shown |
-| account numbers in the Projection/Monte Carlo scenario dump | `<redacted>` | shown |
+| account numbers in the Projection/Monte Carlo scenario dump | `<redacted>` | last 4 digits (`...1234`) |
 | source CSV filename(s) (Summary tab + text report header -- these can embed a household member's name, e.g. `..._Aug-26-2026-alex.csv`) | `<redacted> (N files)` | shown |
 | Summary, Allocation, Projection, Monte Carlo tabs | shown | shown |
 | **Inherited-account decedent date of birth / date of death / 10-year deadline** (Accounts tab) | **shown** | **shown** |
@@ -1779,7 +1798,7 @@ Each year:
      less this year would produce a better outcome over the rest of the
      projection (lower lifetime tax, or a larger total estate); a true
      multi-year optimizer for that is a bigger, separate undertaking (see
-     "Ideas for v1.68+" below).
+     "Ideas for v1.72+" below).
    - **IRA distributions**, if any are configured in the scenario's
      `ira_distributions` (optional -- see "Retirement scenario" above),
      process right after Roth conversions, sharing the same running
@@ -2080,7 +2099,7 @@ Balance) instead of running through age 100.
   know when that spouse's own contributions stop; everything else in the
   projection uses `household_retirement_year`, the LATER of the two.
 - **Withdrawal order is the household's own single choice**, not a
-  comparison across multiple strategies -- see "Ideas for v1.68+" below for
+  comparison across multiple strategies -- see "Ideas for v1.72+" below for
   what a multi-strategy comparison (e.g. tax-bracket-filling, pro-rata)
   would add.
 
@@ -2556,7 +2575,7 @@ Run the regression suite with `python3 -m unittest discover -s tests -t . -v`
 -- see [tests/README.md](tests/README.md) for what it covers (and
 doesn't).
 
-## Known v1.67 limitations (by design — see roadmap ideas below)
+## Known v1.71 limitations (by design — see roadmap ideas below)
 
 - Single household only; no multi-household support
 - No cost-basis / tax-lot analysis, no tax-loss harvesting logic
@@ -2580,7 +2599,7 @@ doesn't).
   modeled, no survivor spending reduction, and only one withdrawal-order
   strategy (not a multi-strategy comparison)
 
-## Ideas for v1.68+ (not built yet)
+## Ideas for v1.72+ (not built yet)
 
 - CLI command to correct an account's owner after the fact (same pattern as
   `accounts set-type`)
