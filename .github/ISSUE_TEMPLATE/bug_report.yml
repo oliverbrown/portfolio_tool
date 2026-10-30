@@ -1,0 +1,59 @@
+name: Bug report
+description: Something doesn't work the way the docs say it should
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! **Please don't paste real account numbers, balances, holdings, or personal scenario files.** Reproduce with the synthetic data in `test_data/` if you can, or replace real values with made-up ones.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you saw, including any error message or traceback.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The exact commands you ran (e.g. `python3 -m pt.cli report ...`), plus any anonymized input.
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Portfolio Tool version
+      description: From the top of README.md, or `git rev-parse --short HEAD`.
+      placeholder: v1.74
+  - type: input
+    id: environment
+    attributes:
+      label: Python version and OS
+      placeholder: Python 3.12, macOS 15
+    validations:
+      required: true
+  - type: dropdown
+    id: broker
+    attributes:
+      label: Brokerage export involved (if any)
+      options:
+        - Not applicable
+        - Fidelity
+        - Schwab
+        - E*TRADE
+        - Other
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I've removed real account numbers, balances, and other personal financial details.
+          required: true
