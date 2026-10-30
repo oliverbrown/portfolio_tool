@@ -1,4 +1,4 @@
-# Portfolio Tool (pt) — v1.71
+# Portfolio Tool (pt) — v1.72
 
 A small local tool to import brokerage account exports, classify holdings by
 asset class, and check your household allocation against your IPS targets.
@@ -11,7 +11,7 @@ later (see "Ideas" below).
 walkthrough using the synthetic data in [`test_data/`](test_data/) — nothing
 below touches your real accounts until you're ready.
 
-## What v1.71 does
+## What v1.72 does
 
 - Imports one or more brokerage CSV exports -- Fidelity, Schwab, and
   E*TRADE, auto-detected per file (Vanguard not yet -- see "Getting your
@@ -697,6 +697,16 @@ below touches your real accounts until you're ready.
   holds it -- total quantity, total value, % of portfolio, number of
   accounts, asset class -- largest first, with a TOTAL row. `--private`
   only, like Holdings.
+- **`report --scenario` with `hypothetical_accounts` now reports on that
+  made-up household throughout**, not just on its Projection/Monte Carlo
+  tabs: the Summary, Accounts, Allocation and IPS comparisons (and the
+  text report) come from the hypothetical accounts' values and
+  asset-class mixes, and the Holdings, Holdings by Ticker, Investment
+  Expenses and Unclassified tabs are left out, since a hypothetical
+  account has no holdings. Previously those tabs silently showed your
+  real imported accounts instead. No imported snapshot is needed, and a
+  malformed `hypothetical_accounts` section is now an error rather than a
+  silent fallback. See "Hypothetical accounts" below.
 
 ## Setup
 
@@ -1798,7 +1808,7 @@ Each year:
      less this year would produce a better outcome over the rest of the
      projection (lower lifetime tax, or a larger total estate); a true
      multi-year optimizer for that is a bigger, separate undertaking (see
-     "Ideas for v1.72+" below).
+     "Ideas for v1.73+" below).
    - **IRA distributions**, if any are configured in the scenario's
      `ira_distributions` (optional -- see "Retirement scenario" above),
      process right after Roth conversions, sharing the same running
@@ -2099,7 +2109,7 @@ Balance) instead of running through age 100.
   know when that spouse's own contributions stop; everything else in the
   projection uses `household_retirement_year`, the LATER of the two.
 - **Withdrawal order is the household's own single choice**, not a
-  comparison across multiple strategies -- see "Ideas for v1.72+" below for
+  comparison across multiple strategies -- see "Ideas for v1.73+" below for
   what a multi-strategy comparison (e.g. tax-bracket-filling, pro-rata)
   would add.
 
@@ -2365,10 +2375,18 @@ inherited buckets a real account would.
 This is deliberately coarser than a real classified portfolio -- one
 `pct_growth` number OR one `asset_classes` map per account instead of
 real per-symbol asset-class weights -- appropriate for a quick trial, not
-precise allocation modeling. `report` (the rebalancing report) isn't
-supported this way --
-it needs real classified holdings for its asset-class/style/sector
-breakdowns. An "Inherited IRA"/"Inherited Roth IRA" `account_type` here
+precise allocation modeling.
+
+`report --scenario my_hypothetical.yaml` works too, and the whole report
+describes the hypothetical household (no import needed): the Summary,
+Accounts, Allocation and IPS comparison tabs -- and the text report --
+are built from each account's `value` and `asset_classes`/`pct_growth`
+mix, with each `account_number` used as the account's name. The
+Holdings, Holdings by Ticker, Investment Expenses and Unclassified tabs
+are left out, since a hypothetical account has no tickers. Because the
+`account_number` is shown as the name in both the public and private
+views, use a label (like `demo-401k`) rather than a real account
+number. An "Inherited IRA"/"Inherited Roth IRA" `account_type` here
 is just a Traditional/Roth balance with no RMD/10-year-rule schedule
 attached -- it doesn't automatically link up with the separate
 `scenario.inherited_accounts` section (see "Retirement scenario" above),
@@ -2575,7 +2593,7 @@ Run the regression suite with `python3 -m unittest discover -s tests -t . -v`
 -- see [tests/README.md](tests/README.md) for what it covers (and
 doesn't).
 
-## Known v1.71 limitations (by design — see roadmap ideas below)
+## Known v1.72 limitations (by design — see roadmap ideas below)
 
 - Single household only; no multi-household support
 - No cost-basis / tax-lot analysis, no tax-loss harvesting logic
@@ -2599,7 +2617,7 @@ doesn't).
   modeled, no survivor spending reduction, and only one withdrawal-order
   strategy (not a multi-strategy comparison)
 
-## Ideas for v1.72+ (not built yet)
+## Ideas for v1.73+ (not built yet)
 
 - CLI command to correct an account's owner after the fact (same pattern as
   `accounts set-type`)

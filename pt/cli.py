@@ -513,12 +513,22 @@ def cmd_snapshots_list(args):
 
 def cmd_report(args):
     conn = db_mod.get_connection(args.db)
-    snapshot_id = args.snapshot or alloc.get_latest_snapshot_id(conn)
-    if snapshot_id is None:
-        print("No snapshots yet. Run 'import' first.", file=sys.stderr)
+    # A scenario with hypothetical_accounts makes the whole report about
+    # that made-up household (see report.load_hypothetical_views()), so no
+    # imported snapshot is needed.
+    try:
+        views = report_mod.load_hypothetical_views(args.scenario, args.profile)
+    except (projection_mod.ProjectionError, planning.ProfileError) as e:
+        print(f"Error in the scenario's hypothetical_accounts: {e}", file=sys.stderr)
         sys.exit(1)
+    snapshot_id = args.snapshot or alloc.get_latest_snapshot_id(conn)
+    if views is None:
+        if snapshot_id is None:
+            print("No snapshots yet. Run 'import' first.", file=sys.stderr)
+            sys.exit(1)
+        views = alloc.snapshot_views(conn, snapshot_id)
 
-    text = report_mod.build_text_report(conn, snapshot_id, debug=args.debug, public=args.public)
+    text = report_mod.build_text_report(conn, snapshot_id, debug=args.debug, public=args.public, views=views)
     text_path = Path(args.text_out)
     text_path.write_text(text)
     print(text)
@@ -527,7 +537,7 @@ def cmd_report(args):
     wb = report_mod.build_workbook(conn, snapshot_id, profile_path=args.profile, scenario_path=args.scenario,
                                     verbose=args.verbose, monte_carlo=args.monte_carlo,
                                     trials=args.trials, seed=args.seed, public=args.public,
-                                    per_bucket_growth=args.per_bucket_growth)
+                                    per_bucket_growth=args.per_bucket_growth, views=views)
     xlsx_path = Path(args.out)
     xlsx_path.parent.mkdir(parents=True, exist_ok=True)
     wb.save(xlsx_path)

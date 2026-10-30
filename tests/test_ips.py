@@ -60,6 +60,18 @@ class CompareSkipsUnsplitMacrosTests(unittest.TestCase):
         self.assertEqual(set(classes), {"US Equity", "REITs", "Unclassified"})
         self.assertEqual(classes["REITs"]["target_pct"], 0.0)
 
+    def test_macro_names_stay_out_of_the_subclass_comparison(self):
+        """A hypothetical account's asset_classes may name a macro directly
+        ("Income"); that belongs in the macro comparison, not as a
+        subclass with a 0% target."""
+        with h.TempDB() as db_path:
+            conn = db_mod.get_connection(db_path)
+            ips.set_target(conn, "US Equity", 0.6)
+            rows = [{"asset_class": "US Equity", "pct": 0.6}, {"asset_class": "Income", "pct": 0.4}]
+            classes = {c["asset_class"] for c in ips.compare_to_targets(conn, rows, 1000.0)}
+            conn.close()
+        self.assertEqual(classes, {"US Equity"})
+
 
 if __name__ == "__main__":
     unittest.main()

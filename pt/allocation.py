@@ -55,6 +55,13 @@ def allocation_by_macro_class(conn, snapshot_id: int):
     allocation_by_asset_class(), so callers (e.g. ips.compare_to_targets())
     work with either one."""
     subclass_rows, total = allocation_by_asset_class(conn, snapshot_id)
+    return _macro_rollup(subclass_rows, total), total
+
+
+def _macro_rollup(subclass_rows, total):
+    """allocation_by_macro_class()'s rollup of allocation_by_asset_class()-
+    shaped rows. A name that's already a macro (a hypothetical account's
+    asset_classes may name one directly) maps to itself."""
     totals = defaultdict(float)
     for r in subclass_rows:
         macro = SUBCLASS_MACRO.get(r["asset_class"], r["asset_class"])
@@ -65,7 +72,7 @@ def allocation_by_macro_class(conn, snapshot_id: int):
         for macro, v in totals.items()
     ]
     result.sort(key=lambda r: -r["value"])
-    return result, total
+    return result
 
 
 def account_values(conn, snapshot_id: int):
@@ -285,3 +292,112 @@ def expense_summary(conn, snapshot_id: int):
         "missing_value": total_missing,
     }
     return accounts, totals
+
+
+def account_list(conn, snapshot_id: int):
+    """One row per account, largest first: account_number, account_name,
+    account_type, owner, value -- the report's Accounts tab."""
+    rows = conn.execute(
+        """
+        SELECT a.account_number, a.account_name, a.account_type, a.owner,
+               SUM(h.current_value) AS value
+        FROM accounts a
+        JOIN holdings h ON h.account_number = a.account_number
+        WHERE h.snapshot_id = ?
+        GROUP BY a.account_number
+        ORDER BY value DESC
+        """,
+        (snapshot_id,),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+# ------------------------------------------------------- household views
+#
+# The report (pt/report.py) renders the same handful of allocation views
+# whether the household is a real imported snapshot or a scenario's
+# hypothetical_accounts. Both functions below return a dict with the same
+# keys, each matching the shape of the snapshot function named:
+#   alloc_rows, total   allocation_by_asset_class()
+#   macro_rows          allocation_by_macro_class()
+#   acct_type_rows      allocation_by_account_type()
+#   by_account          allocation_by_account()
+#   by_type             accounts_by_account_type()
+#   accounts            account_list()
+#   hypothetical        True for hypothetical_views()
+
+def snapshot_views(conn, snapshot_id: int) -> dict:
+    alloc_rows, total = allocation_by_asset_class(conn, snapshot_id)
+    acct_type_rows, _ = allocation_by_account_type(conn, snapshot_id)
+    return {
+        "alloc_rows": alloc_rows,
+        "total": total,
+        "macro_rows": _macro_rollup(alloc_rows, total),
+        "acct_type_rows": acct_type_rows,
+        "by_account": allocation_by_account(conn, snapshot_id),
+        "by_type": accounts_by_account_type(conn, snapshot_id),
+        "accounts": account_list(conn, snapshot_id),
+        "hypothetical": False,
+    }
+
+
+def hypothetical_views(account_rows, class_rows) -> dict:
+    """The same views from projection._parse_hypothetical_accounts()'s
+    (account_rows, class_rows) -- no database involved. A hypothetical
+    account has no name, so its account_number stands in for one."""
+    total = sum(a["value"] for a in account_rows)
+
+    def share(value):
+        return value / total if total else 0.0
+
+    class_totals = defaultdict(float)
+    for r in class_rows:
+        class_totals[r["asset_class"]] += r["value"]
+    alloc_rows = sorted(
+        ({"asset_class": ac, "value": v, "pct": share(v)} for ac, v in class_totals.items()),
+        key=lambda r: -r["value"],
+    )
+
+    type_totals = defaultdict(float)
+    by_type = defaultdict(list)
+    for a in sorted(account_rows, key=lambda a: -a["value"]):
+        type_totals[a["account_type"]] += a["value"]
+        by_type[a["account_type"]].append({
+            "account_number": a["account_number"], "account_name": a["account_number"],
+            "owner": a["owner"], "value": a["value"], "account_type_source": "scenario",
+        })
+    acct_type_rows = sorted(
+        ({"account_type": t, "value": v, "pct": share(v)} for t, v in type_totals.items()),
+        key=lambda r: -r["value"],
+    )
+
+    account_totals = {a["account_number"]: a["value"] for a in account_rows}
+    by_account = [
+        {
+            "account_number": r["account_number"], "account_name": r["account_number"],
+            "account_type": r["account_type"], "owner": r["owner"], "asset_class": r["asset_class"],
+            "value": r["value"],
+            "pct_of_account": (r["value"] / account_totals[r["account_number"]]
+                               if account_totals[r["account_number"]] else 0.0),
+            "account_total": account_totals[r["account_number"]],
+        }
+        for r in class_rows
+    ]
+    by_account.sort(key=lambda r: (r["account_name"], r["account_number"], -r["value"]))
+
+    accounts = sorted(
+        ({"account_number": a["account_number"], "account_name": a["account_number"],
+          "account_type": a["account_type"], "owner": a["owner"], "value": a["value"]}
+         for a in account_rows),
+        key=lambda a: -a["value"],
+    )
+    return {
+        "alloc_rows": alloc_rows,
+        "total": total,
+        "macro_rows": _macro_rollup(alloc_rows, total),
+        "acct_type_rows": acct_type_rows,
+        "by_account": by_account,
+        "by_type": by_type,
+        "accounts": accounts,
+        "hypothetical": True,
+    }

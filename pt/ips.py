@@ -177,14 +177,17 @@ def check_household_targets(conn) -> list:
 def _drop_unsplit_subclasses(targets: dict, actual_by_class: dict) -> dict:
     """actual_by_class minus the subclasses whose macro has no subclass
     target at all in `targets` -- so e.g. a Liquidity holding isn't flagged
-    "trim to 0%" just because only Liquidity's macro target is set. Classes
+    "trim to 0%" just because only Liquidity's macro target is set. A macro
+    name itself (a hypothetical account's asset_classes may name one
+    directly) is dropped too -- it belongs in the macro comparison. Classes
     outside the hierarchy (Unclassified, Other) are kept. With no subclass
     targets at all, nothing is dropped (callers show actuals only)."""
     if not targets:
         return actual_by_class
     split_macros = {SUBCLASS_MACRO[ac] for ac in targets if ac in SUBCLASS_MACRO}
     return {ac: pct for ac, pct in actual_by_class.items()
-            if ac not in SUBCLASS_MACRO or SUBCLASS_MACRO[ac] in split_macros}
+            if ac not in MACRO_CLASSES
+            and (ac not in SUBCLASS_MACRO or SUBCLASS_MACRO[ac] in split_macros)}
 
 
 def _compare(targets: dict, actual_by_class: dict, total: float, overridden: set = frozenset()):

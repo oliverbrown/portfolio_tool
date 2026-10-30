@@ -135,20 +135,7 @@ class PtCliSmokeTests(unittest.TestCase):
                 self.assertTrue(any(v and "Per-bucket growth rate" in str(v) for v in col_a), sheet_name)
                 self.assertTrue(any(v and str(v).strip().startswith("Taxable:") for v in col_a), sheet_name)
 
-    def test_report_hypothetical_scenario_uses_its_own_accounts_not_the_snapshot(self):
-        """`report` always reads the DATABASE snapshot for its Holdings/
-        Allocation/IPS tabs -- but if --scenario configures its own
-        hypothetical_accounts, the Projection/Monte Carlo tabs' growth
-        math (including --per-bucket-growth) must come ENTIRELY from that
-        made-up household, not from self.db_path's real (and completely
-        unrelated) test-fidelity snapshot -- see build_workbook()'s
-        docstring. A single 100%-US-Equity hypothetical account should
-        blend to exactly that class's own expected_return (7.5% here),
-        regardless of what the snapshot holds."""
-        import openpyxl
-        with tempfile.TemporaryDirectory() as d:
-            scenario_path = Path(d) / "hypothetical.yaml"
-            scenario_path.write_text("""
+    HYPOTHETICAL_SCENARIO = """
 people:
   primary: {name: alex, birthdate: 1962-01-01}
 retirement: {retirement_age: 65}
@@ -157,28 +144,91 @@ inflation: {general: 2.5}
 returns:
   asset_classes:
     US Equity: {expected_return: 7.5, volatility: 18}
+    US Bonds: {expected_return: 4.0, volatility: 6}
 hypothetical_accounts:
   - account_number: taxable1
     account_type: Brokerage
     owner: alex
     value: 500000
     asset_classes: {US Equity: 100}
-""")
+  - account_number: ira1
+    account_type: IRA
+    owner: alex
+    value: 250000
+    asset_classes: {US Equity: 40, US Bonds: 60}
+"""
+
+    def test_report_hypothetical_scenario_uses_its_own_accounts_not_the_snapshot(self):
+        """If --scenario configures hypothetical_accounts, the WHOLE report
+        is about that made-up household, not self.db_path's real (and
+        completely unrelated) test-fidelity snapshot -- see
+        build_workbook()'s docstring. The Projection tab's growth math
+        (including --per-bucket-growth) comes from it -- a 100%-US-Equity
+        taxable account blends to exactly that class's own expected_return
+        (7.5%) -- and so do the Summary/Accounts/Allocation tabs and the
+        text report, while the holdings-level tabs are left out."""
+        import openpyxl
+        with tempfile.TemporaryDirectory() as d:
+            scenario_path = Path(d) / "hypothetical.yaml"
+            scenario_path.write_text(self.HYPOTHETICAL_SCENARIO)
             xlsx = Path(d) / "r.xlsx"
             txt = Path(d) / "r.txt"
             result = run_cli("pt.cli", "--db", str(self.db_path), "report", "--private",
                               "--out", str(xlsx), "--text-out", str(txt),
                               "--scenario", str(scenario_path), "--per-bucket-growth")
             self.assertEqual(result.returncode, 0, result.stderr)
-            ws = openpyxl.load_workbook(xlsx)["Projection"]
-            col_a = [v for v in ws.iter_rows(min_col=1, max_col=1, values_only=True) for v in v]
-            self.assertTrue(any(v and "Blended growth rate" in str(v) and "7.50%" in str(v) for v in col_a),
-                             col_a)
+            wb = openpyxl.load_workbook(xlsx)
+            col_a = [v for v in wb["Projection"].iter_rows(min_col=1, max_col=1, values_only=True) for v in v]
             self.assertTrue(any(v and str(v).strip() == "Taxable: 7.50%" for v in col_a), col_a)
-            # Allocation tab is unaffected -- still the real snapshot's household.
-            alloc_owners = {r[1] for r in openpyxl.load_workbook(xlsx)["Allocation"].iter_rows(
-                min_row=4, values_only=True)}
-            self.assertNotIn("Alex", alloc_owners)
+
+            # No holdings exist for a hypothetical account.
+            for dropped in ("Holdings", "Holdings by Ticker", "Investment Expenses", "Unclassified"):
+                self.assertNotIn(dropped, wb.sheetnames)
+            self.assertIn("Hypothetical household from scenario: hypothetical.yaml", wb["Summary"]["A2"].value)
+            self.assertIn("$750,000", wb["Summary"]["A3"].value)
+
+            # Accounts: the hypothetical ids, with no separate Account Number column.
+            accounts = list(wb["Accounts"].iter_rows(values_only=True))
+            self.assertEqual(list(accounts[0][:4]), ["Account Name", "Owner", "Account Type", "Value"])
+            self.assertEqual([(r[0], r[3]) for r in accounts[1:]], [("taxable1", 500000), ("ira1", 250000)])
+
+            # Allocation: each account's own asset-class mix.
+            alloc_rows = [r for r in wb["Allocation"].iter_rows(min_row=4, values_only=True) if r[0]]
+            self.assertEqual({r[1] for r in alloc_rows}, {"alex"})
+            ira = {r[4]: (r[3], r[5], r[6]) for r in alloc_rows if r[0] == "ira1"}
+            self.assertEqual(ira["US Bonds"], ("Income", 150000, 0.6))
+            self.assertEqual(ira["US Equity"], ("Growth", 100000, 0.4))
+
+            body = txt.read_text()
+            self.assertIn("Hypothetical household from scenario: hypothetical.yaml", body)
+            self.assertNotIn("test-fidelity", body)
+            self.assertNotIn("INVESTMENT EXPENSE SUMMARY", body)
+
+    def test_report_hypothetical_scenario_needs_no_snapshot(self):
+        """A hypothetical report never touches the database, so it works
+        before anything has been imported."""
+        import openpyxl
+        with tempfile.TemporaryDirectory() as d:
+            scenario_path = Path(d) / "hypothetical.yaml"
+            scenario_path.write_text(self.HYPOTHETICAL_SCENARIO)
+            xlsx = Path(d) / "r.xlsx"
+            result = run_cli("pt.cli", "--db", str(Path(d) / "empty.db"), "report", "--private",
+                              "--out", str(xlsx), "--text-out", str(Path(d) / "r.txt"),
+                              "--scenario", str(scenario_path))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("Projection", openpyxl.load_workbook(xlsx).sheetnames)
+
+    def test_report_hypothetical_scenario_with_a_bad_account_fails_clearly(self):
+        """A broken hypothetical_accounts section is an error, not a silent
+        fallback to the real accounts."""
+        with tempfile.TemporaryDirectory() as d:
+            scenario_path = Path(d) / "hypothetical.yaml"
+            scenario_path.write_text(self.HYPOTHETICAL_SCENARIO.replace("account_type: IRA", "account_type: Nope"))
+            result = run_cli("pt.cli", "--db", str(self.db_path), "report", "--private",
+                              "--out", str(Path(d) / "r.xlsx"), "--text-out", str(Path(d) / "r.txt"),
+                              "--scenario", str(scenario_path))
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("hypothetical_accounts", result.stderr)
 
     def test_report_public_is_the_default_and_trims_the_shareable_view(self):
         import openpyxl

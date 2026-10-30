@@ -75,23 +75,54 @@ def _source_file_display(source_file: str, public: bool) -> str:
     return f"<redacted> ({n} file{'s' if n != 1 else ''})"
 
 
-def build_text_report(conn, snapshot_id: int, debug: bool = False, public: bool = False) -> str:
+def load_hypothetical_views(scenario_path=None, profile_path=None):
+    """allocation.hypothetical_views() for the scenario's
+    hypothetical_accounts, plus "source" (the scenario file's name) -- or
+    None when the scenario doesn't load or has no hypothetical_accounts,
+    in which case the report shows the database snapshot as usual. Raises
+    projection.ProjectionError for a malformed hypothetical_accounts
+    section, or planning.ProfileError if no profile matches its owners --
+    a hypothetical report never silently falls back to the real accounts."""
+    path = scenario_path or scenario_mod.DEFAULT_SCENARIO_PATH
+    try:
+        scenario = scenario_mod.load_scenario(path)
+    except scenario_mod.ScenarioError:
+        return None
+    if not scenario.get("hypothetical_accounts"):
+        return None
+    profile = planning.resolve_profile(profile_path, scenario)
+    account_rows, _, _ = projection_mod.build_hypothetical_accounts(scenario, profile)
+    class_rows = projection_mod.build_hypothetical_account_class_rows(scenario, profile)
+    views = alloc.hypothetical_views(account_rows, class_rows)
+    views["source"] = Path(path).name
+    return views
+
+
+def build_text_report(conn, snapshot_id: int, debug: bool = False, public: bool = False,
+                      views: dict = None) -> str:
     """public=True produces the shareable view (see `report --public`, the
     default): no account-number suffixes, and the IPS-target comparison,
     by-account IPS, unclassified-holdings, and investment-expense sections
     are all dropped -- leaving the allocation-by-account-type and
     allocation-by-account (asset-class breakdown) sections. --private keeps
-    everything (public=False)."""
-    def acct_ref(num):
-        """'#...1234' last-4 account reference, or '' in the public view."""
-        return "" if public else f"#...{num[-4:]}"
-    snap = conn.execute(
-        "SELECT * FROM snapshots WHERE id = ?", (snapshot_id,)
-    ).fetchone()
+    everything (public=False).
 
-    alloc_rows, total = alloc.allocation_by_asset_class(conn, snapshot_id)
-    macro_rows, _ = alloc.allocation_by_macro_class(conn, snapshot_id)
-    acct_rows, _ = alloc.allocation_by_account_type(conn, snapshot_id)
+    views (see load_hypothetical_views()) reports on a scenario's
+    hypothetical_accounts instead of snapshot_id; those have no holdings,
+    so the unclassified-holdings and investment-expense sections are
+    dropped and snapshot_id may be None."""
+    if views is None:
+        views = alloc.snapshot_views(conn, snapshot_id)
+    hypothetical = views["hypothetical"]
+
+    def acct_ref(num):
+        """'#...1234' last-4 account reference, or '' in the public view
+        (or for a hypothetical account, whose name already is its number)."""
+        return "" if public or hypothetical else f"#...{num[-4:]}"
+
+    alloc_rows, total = views["alloc_rows"], views["total"]
+    macro_rows = views["macro_rows"]
+    acct_rows = views["acct_type_rows"]
     comparison = ips_mod.compare_to_targets(conn, alloc_rows, total)
     macro_comparison = ips_mod.compare_to_macro_targets(conn, macro_rows, total)
     unclassified_value = sum(r["value"] for r in alloc_rows if r["asset_class"] == UNCLASSIFIED)
@@ -100,10 +131,17 @@ def build_text_report(conn, snapshot_id: int, debug: bool = False, public: bool 
     lines.append("=" * 64)
     lines.append("HOUSEHOLD REBALANCING REPORT")
     lines.append("=" * 64)
-    lines.append(f"Snapshot:      #{snap['id']}  (imported {snap['imported_at']})")
-    lines.append(f"Source file:   {_source_file_display(snap['source_file'], public)}")
-    if snap["as_of_date"]:
-        lines.append(f"As-of date:    {snap['as_of_date']}")
+    if hypothetical:
+        lines.append(f"Hypothetical household from scenario: {views['source']}")
+        lines.append("  (the scenario's hypothetical_accounts -- not your imported accounts)")
+    else:
+        snap = conn.execute(
+            "SELECT * FROM snapshots WHERE id = ?", (snapshot_id,)
+        ).fetchone()
+        lines.append(f"Snapshot:      #{snap['id']}  (imported {snap['imported_at']})")
+        lines.append(f"Source file:   {_source_file_display(snap['source_file'], public)}")
+        if snap["as_of_date"]:
+            lines.append(f"As-of date:    {snap['as_of_date']}")
     lines.append(f"Household total value: ${total:,.0f}")
     lines.append("")
 
@@ -118,7 +156,7 @@ def build_text_report(conn, snapshot_id: int, debug: bool = False, public: bool 
         lines.append("-" * 64)
         lines.append("DEBUG: ACCOUNTS CONTRIBUTING TO EACH ACCOUNT TYPE")
         lines.append("-" * 64)
-        by_type = alloc.accounts_by_account_type(conn, snapshot_id)
+        by_type = views["by_type"]
         # Account names are free text from each household's own Fidelity
         # export, unlike the fixed, known-in-advance asset-class/macro-class
         # names elsewhere in this report (see CLASS_COL_WIDTH) -- a real
@@ -146,7 +184,7 @@ def build_text_report(conn, snapshot_id: int, debug: bool = False, public: bool 
     lines.append("-" * 64)
     lines.append("ALLOCATION BY ACCOUNT  (asset class breakdown within each account)")
     lines.append("-" * 64)
-    by_account = alloc.allocation_by_account(conn, snapshot_id)
+    by_account = views["by_account"]
     current_account_number = None
     current_account_total = None
     for r in by_account:
@@ -249,7 +287,7 @@ def build_text_report(conn, snapshot_id: int, debug: bool = False, public: bool 
         lines.append('    python -m pt.cli classify SYMBOL "US Equity"')
         lines.append("")
 
-    if not public:
+    if not public and not hypothetical:
         exp_accounts, exp_totals = alloc.expense_summary(conn, snapshot_id)
         lines.append("-" * 64)
         lines.append("INVESTMENT EXPENSE SUMMARY  (calculated annual cost)")
@@ -919,7 +957,7 @@ def _projection_col_widths(has_spouse, n_account_columns=0):
 
 def build_workbook(conn, snapshot_id: int, profile_path=None, scenario_path=None, verbose: bool = False,
                     monte_carlo: bool = False, trials: int = 1000, seed: int = None, public: bool = False,
-                    per_bucket_growth: bool = False):
+                    per_bucket_growth: bool = False, views: dict = None):
     """profile_path/scenario_path default to the standard planning-profile
     and retirement-scenario locations (see pt/planning.py, pt/scenario.py).
     The Projection tab is included only if both load successfully -- most
@@ -928,13 +966,15 @@ def build_workbook(conn, snapshot_id: int, profile_path=None, scenario_path=None
     `--verbose` in pt/cli.py) adds a column for every account currently
     over VERBOSE_ACCOUNT_THRESHOLD, same as `project --verbose`.
 
-    If the scenario configures scenario.hypothetical_accounts, the
-    Projection/Monte Carlo tabs' own math (growth rate, per-bucket
-    breakdown, the simulation itself) comes ENTIRELY from that made-up
-    household -- NOT from this snapshot -- exactly like `project`/
-    `monte-carlo --scenario` do; every other tab (Holdings, Allocation,
-    IPS comparisons, ...) still reports on the real snapshot regardless,
-    since those have nothing to do with the scenario at all. The profile
+    If the scenario configures scenario.hypothetical_accounts, the whole
+    workbook reports on that made-up household -- NOT on this snapshot,
+    which may then be None. The Projection/Monte Carlo tabs' math comes
+    entirely from it, exactly like `project`/`monte-carlo --scenario`; the
+    Summary, Accounts, Allocation and IPS tabs are built from its accounts'
+    values and asset-class mixes (see load_hypothetical_views()); and the
+    Holdings, Holdings by Ticker, Investment Expenses and Unclassified tabs
+    are left out, since hypothetical accounts have no holdings. `views`
+    may pass in an already-loaded load_hypothetical_views() result. The profile
     itself follows the same rule (planning.resolve_profile()): if
     profile_path isn't given AND the scenario is a self-contained
     hypothetical one (hypothetical_accounts + its own top-level `people`),
@@ -963,55 +1003,51 @@ def build_workbook(conn, snapshot_id: int, profile_path=None, scenario_path=None
     projection.bucket_allocation_rows(). Adds a household-summary-plus-
     per-bucket-detail breakdown to the MODEL PARAMETERS block on both the
     Projection and Monte Carlo tabs."""
-    snap = conn.execute("SELECT * FROM snapshots WHERE id = ?", (snapshot_id,)).fetchone()
-    alloc_rows, total = alloc.allocation_by_asset_class(conn, snapshot_id)
-    macro_rows, _ = alloc.allocation_by_macro_class(conn, snapshot_id)
-    acct_type_rows, _ = alloc.allocation_by_account_type(conn, snapshot_id)
+    if views is None:
+        views = (load_hypothetical_views(scenario_path, profile_path)
+                 or alloc.snapshot_views(conn, snapshot_id))
+    hypothetical = views["hypothetical"]
+    alloc_rows, total = views["alloc_rows"], views["total"]
+    macro_rows = views["macro_rows"]
+    acct_type_rows = views["acct_type_rows"]
     comparison = ips_mod.compare_to_targets(conn, alloc_rows, total)
     macro_comparison = ips_mod.compare_to_macro_targets(conn, macro_rows, total)
-    by_account = alloc.allocation_by_account(conn, snapshot_id)
+    by_account = views["by_account"]
     by_account_targets = ips_mod.compare_to_targets_by_account(conn, by_account)
-    exp_accounts, exp_totals = alloc.expense_summary(conn, snapshot_id)
+    accounts = views["accounts"]
 
-    holdings_raw = conn.execute(
-        """
-        SELECT a.account_number, a.account_name, a.account_type, a.owner,
-               h.symbol, h.description, h.quantity, h.last_price, h.current_value
-        FROM holdings h
-        JOIN accounts a ON a.account_number = h.account_number
-        WHERE h.snapshot_id = ?
-        ORDER BY a.account_name, a.account_number, h.current_value DESC
-        """,
-        (snapshot_id,),
-    ).fetchall()
-    # Asset class/style/sector labeling can't be a plain SQL join once a
-    # symbol may be split across several categories, so each is resolved
-    # per-symbol here.
-    holdings = [
-        dict(
-            h,
-            asset_class=classifier.get_classification_label(conn, h["symbol"]),
-            style=attributes.get_style_label(conn, h["symbol"]),
-            sector=attributes.get_sector_label(conn, h["symbol"]),
-            expense_ratio=attributes.get_expense_ratio(conn, h["symbol"]),
-        )
-        for h in holdings_raw
-    ]
-
-    accounts = conn.execute(
-        """
-        SELECT a.account_number, a.account_name, a.account_type, a.owner,
-               SUM(h.current_value) AS value
-        FROM accounts a
-        JOIN holdings h ON h.account_number = a.account_number
-        WHERE h.snapshot_id = ?
-        GROUP BY a.account_number
-        ORDER BY value DESC
-        """,
-        (snapshot_id,),
-    ).fetchall()
-
-    unclassified = classifier.list_unclassified(conn, snapshot_id)
+    # Holdings-level detail exists only for a real snapshot.
+    snap = None
+    holdings, unclassified = [], []
+    exp_accounts, exp_totals = [], None
+    if not hypothetical:
+        snap = conn.execute("SELECT * FROM snapshots WHERE id = ?", (snapshot_id,)).fetchone()
+        exp_accounts, exp_totals = alloc.expense_summary(conn, snapshot_id)
+        holdings_raw = conn.execute(
+            """
+            SELECT a.account_number, a.account_name, a.account_type, a.owner,
+                   h.symbol, h.description, h.quantity, h.last_price, h.current_value
+            FROM holdings h
+            JOIN accounts a ON a.account_number = h.account_number
+            WHERE h.snapshot_id = ?
+            ORDER BY a.account_name, a.account_number, h.current_value DESC
+            """,
+            (snapshot_id,),
+        ).fetchall()
+        # Asset class/style/sector labeling can't be a plain SQL join once a
+        # symbol may be split across several categories, so each is resolved
+        # per-symbol here.
+        holdings = [
+            dict(
+                h,
+                asset_class=classifier.get_classification_label(conn, h["symbol"]),
+                style=attributes.get_style_label(conn, h["symbol"]),
+                sector=attributes.get_sector_label(conn, h["symbol"]),
+                expense_ratio=attributes.get_expense_ratio(conn, h["symbol"]),
+            )
+            for h in holdings_raw
+        ]
+        unclassified = classifier.list_unclassified(conn, snapshot_id)
 
     # Load the retirement scenario once, up front -- used both for the
     # inherited-account decedent dates on the Accounts tab (below) and, if
@@ -1040,8 +1076,12 @@ def build_workbook(conn, snapshot_id: int, profile_path=None, scenario_path=None
     ws.title = "Summary"
     ws["A1"] = "Household Rebalancing Summary"
     ws["A1"].font = Font(name=FONT_NAME, bold=True, size=14)
-    ws["A2"] = (f"Snapshot #{snap['id']}  |  Imported {snap['imported_at']}  |  "
-                f"Source: {_source_file_display(snap['source_file'], public)}")
+    if hypothetical:
+        ws["A2"] = (f"Hypothetical household from scenario: {views['source']}  "
+                    "(the scenario's hypothetical_accounts -- not your imported accounts)")
+    else:
+        ws["A2"] = (f"Snapshot #{snap['id']}  |  Imported {snap['imported_at']}  |  "
+                    f"Source: {_source_file_display(snap['source_file'], public)}")
     ws["A2"].font = BODY_FONT
     ws["A3"] = f"Household total value: ${total:,.0f}"
     ws["A3"].font = BOLD_FONT
@@ -1076,7 +1116,7 @@ def build_workbook(conn, snapshot_id: int, profile_path=None, scenario_path=None
 
     # --- Holdings tab (private only -- per-symbol positions), with each
     # position's share of the whole portfolio and of its own account.
-    if not public:
+    if not public and not hypothetical:
         portfolio_value = sum(h["current_value"] or 0.0 for h in holdings)
         account_values = defaultdict(float)
         for h in holdings:
@@ -1138,8 +1178,10 @@ def build_workbook(conn, snapshot_id: int, profile_path=None, scenario_path=None
     # view and shows just the last 4 digits in the private one; the inherited-account decedent birth/death dates + 10-year
     # deadline (from scenario.inherited_accounts, matched by account number)
     # are shown in BOTH views when there are any.
+    # A hypothetical account's id already IS its name, so no separate column.
     ws = wb.create_sheet("Accounts")
-    num_cols = [] if public else ["Account Number"]
+    show_numbers = not public and not hypothetical
+    num_cols = ["Account Number"] if show_numbers else []
     inh_cols = ["Decedent Date of Birth", "Decedent Date of Death",
                 "Inherited-Account 10-Year Deadline"] if all_inherited else []
     headers = num_cols + ["Account Name", "Owner", "Account Type", "Value"] + inh_cols
@@ -1147,7 +1189,7 @@ def build_workbook(conn, snapshot_id: int, profile_path=None, scenario_path=None
     data = []
     for a in accounts:
         acct_num = str(a["account_number"])
-        row = ([] if public else [_mask_account_number(a["account_number"])]) + [
+        row = ([_mask_account_number(a["account_number"])] if show_numbers else []) + [
             a["account_name"], a["owner"] or "", a["account_type"], a["value"],
         ]
         if all_inherited:
@@ -1166,21 +1208,22 @@ def build_workbook(conn, snapshot_id: int, profile_path=None, scenario_path=None
         if acct_num is not None and str(acct_num) in matched_inherited:
             continue
         kind = "Inherited Roth IRA" if entry.get("type") == "roth" else "Inherited IRA"
-        label = f"(inherited {entry.get('type') or ''} -- not in current snapshot)".replace("  ", " ")
-        row = ([] if public else [_mask_account_number(acct_num)]) + [
+        where = "these hypothetical accounts" if hypothetical else "current snapshot"
+        label = f"(inherited {entry.get('type') or ''} -- not in {where})".replace("  ", " ")
+        row = ([_mask_account_number(acct_num)] if show_numbers else []) + [
             label, (entry.get("beneficiary") or ""), kind, "",
         ] + _inherited_date_cells(entry)
         data.append(tuple(row))
     value_col = len(num_cols) + 4
     _write_table(ws, headers, data, currency_cols=(value_col,))
-    _autosize(ws, ([] if public else [18]) + [26, 14, 20, 16] + ([16, 16, 16] if all_inherited else []))
+    _autosize(ws, ([18] if show_numbers else []) + [26, 14, 20, 16] + ([16, 16, 16] if all_inherited else []))
 
     # --- Expenses tab (private only): each account's calculated blended
     # expense ratio and annual dollar cost (holdings' own per-symbol expense
     # ratios, weighted by value, PLUS the account's own flat fee if set via
     # `accounts set-expense-ratio` -- e.g. a managed account's advisory fee
     # -- see pt/allocation.py's expense_summary()), plus a household total.
-    if not public:
+    if not public and not hypothetical:
         ws = wb.create_sheet("Investment Expenses")
         headers = ["Account Name", "Account Type", "Owner", "Value", "Account Fee %",
                    "Holdings Expense $/yr", "Account Fee $/yr", "Total Expense $/yr", "Blended Ratio"]
@@ -1222,7 +1265,9 @@ def build_workbook(conn, snapshot_id: int, profile_path=None, scenario_path=None
     ws["A1"].font = BOLD_FONT
     headers = ["Account Name", "Owner", "Account Type", "Macro Class", "Asset Class", "Value", "% of Account"]
     data = [(r["account_name"], r["owner"] or "", r["account_type"],
-              classifier.SUBCLASS_MACRO.get(r["asset_class"], ""), r["asset_class"],
+              classifier.SUBCLASS_MACRO.get(
+                  r["asset_class"], r["asset_class"] if r["asset_class"] in classifier.MACRO_CLASSES else ""),
+              r["asset_class"],
               r["value"], r["pct_of_account"])
             for r in by_account]
     _write_table(ws, headers, data, currency_cols=(6,), pct_cols=(7,), start_row=3)
@@ -1261,7 +1306,7 @@ def build_workbook(conn, snapshot_id: int, profile_path=None, scenario_path=None
             _autosize(ws, [24, 24, 12, 12, 12, 16, 20, 10])
 
     # --- Unclassified tab (private only)
-    if not public:
+    if not public and not hypothetical:
         ws = wb.create_sheet("Unclassified")
         if unclassified:
             headers = ["Symbol", "Description", "Total Value"]
